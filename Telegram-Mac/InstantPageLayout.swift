@@ -123,7 +123,7 @@ func layoutInstantPageBlock(webpage: TelegramMediaWebpage, rtl: Bool, block: Ins
     
     let stringForDate: (Int32) -> String = { date in
         let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: appAppearance.language.languageCode)
+        dateFormatter.locale = appAppearance.locale
         dateFormatter.dateStyle = .long
         dateFormatter.timeStyle = .none
         return dateFormatter.string(from: Date(timeIntervalSince1970: Double(date)))
@@ -738,7 +738,7 @@ func layoutInstantPageBlock(webpage: TelegramMediaWebpage, rtl: Bool, block: Ins
             }
         }
         
-        let map = TelegramMediaMap(latitude: latitude, longitude: longitude, geoPlace: nil, venue: nil, liveBroadcastingTimeout: nil)
+        let map = TelegramMediaMap(latitude: latitude, longitude: longitude, heading: nil, accuracyRadius: nil, geoPlace: nil, venue: nil, liveBroadcastingTimeout: nil, liveProximityNotificationRadius: nil)
         let attributes: [InstantPageImageAttribute] = [InstantPageMapAttribute(zoom: zoom, dimensions: dimensions.size)]
         
         var contentSize = CGSize(width: boundingWidth - safeInset * 2.0, height: 0.0)

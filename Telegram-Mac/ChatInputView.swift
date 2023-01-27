@@ -133,7 +133,7 @@ class ChatInputView: View, TGModernGrowingDelegate, Notifable {
         textView.linkColor = theme.colors.link
         textView.textFont = .normal(CGFloat(theme.fontSize))
         
-        updateInput(interaction.presentation, prevState: ChatPresentationInterfaceState(interaction.chatLocation), false)
+        updateInput(interaction.presentation, prevState: ChatPresentationInterfaceState(chatLocation: interaction.chatLocation, chatMode: interaction.mode), false)
         textView.setPlaceholderAttributedString(.initialize(string: textPlaceholder, color: theme.colors.grayText, font: NSFont.normal(theme.fontSize), coreText: false), update: false)
         
         textView.delegate = self
@@ -146,16 +146,24 @@ class ChatInputView: View, TGModernGrowingDelegate, Notifable {
     }
     
     private var textPlaceholder: String {
-        if let peer = chatInteraction.presentation.peer {
-            if peer.isChannel {
-                if textView.frame.width < 150 {
-                    return L10n.messagesPlaceholderBroadcastSmall
-                }
-                return FastSettings.isChannelMessagesMuted(peer.id) ? L10n.messagesPlaceholderSilentBroadcast : L10n.messagesPlaceholderBroadcast
+        
+        if case let .replyThread(_, mode) = chatInteraction.mode {
+            switch mode {
+            case .comments:
+                return L10n.messagesPlaceholderComment
+            case .replies:
+                return L10n.messagesPlaceholderReply
             }
         }
-        if textView.frame.width < 150 {
-            return L10n.messagesPlaceholderSentMessageSmall
+        if let peer = chatInteraction.presentation.peer {
+            if let peer = peer as? TelegramChannel {
+                if peer.hasPermission(.canBeAnonymous) {
+                    return L10n.messagesPlaceholderAnonymous
+                }
+            }
+            if peer.isChannel {
+                return FastSettings.isChannelMessagesMuted(peer.id) ? L10n.messagesPlaceholderSilentBroadcast : L10n.messagesPlaceholderBroadcast
+            }
         }
         return L10n.messagesPlaceholderSentMessage
     }
@@ -514,7 +522,8 @@ class ChatInputView: View, TGModernGrowingDelegate, Notifable {
             }
             if !text.isEmpty || !chatInteraction.presentation.interfaceState.forwardMessageIds.isEmpty || chatInteraction.presentation.state == .editing {
                 chatInteraction.sendMessage(false, nil)
-                chatInteraction.context.account.updateLocalInputActivity(peerId: chatInteraction.peerId, activity: .typingText, isPresent: false)
+                
+                chatInteraction.context.account.updateLocalInputActivity(peerId: .init(peerId: chatInteraction.peerId, threadId: chatInteraction.mode.threadId64), activity: .typingText, isPresent: false)
                 markNextTextChangeToFalseActivity = true
             }
             
@@ -597,7 +606,7 @@ class ChatInputView: View, TGModernGrowingDelegate, Notifable {
             
             sendActivityDisposable.set((Signal<Bool, NoError>.single(!state.inputText.isEmpty) |> then(Signal<Bool, NoError>.single(false) |> delay(4.0, queue: Queue.mainQueue()))).start(next: { [weak self] isPresent in
                 if let chatInteraction = self?.chatInteraction, let peer = chatInteraction.presentation.peer, !peer.isChannel && chatInteraction.presentation.state != .editing {
-                    chatInteraction.context.account.updateLocalInputActivity(peerId: chatInteraction.peerId, activity: .typingText, isPresent: isPresent)
+                    chatInteraction.context.account.updateLocalInputActivity(peerId: .init(peerId: peer.id, threadId: chatInteraction.mode.threadId64), activity: .typingText, isPresent: isPresent)
                 }
             }))
         }

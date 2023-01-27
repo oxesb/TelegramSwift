@@ -269,6 +269,8 @@ private func stringForRight(right: TelegramChatAdminRightsFlags, isGroup: Bool, 
         return L10n.channelEditAdminPermissionPinMessages
     } else if right.contains(.canAddAdmins) {
         return L10n.channelEditAdminPermissionAddNewAdmins
+    } else if right.contains(.canBeAnonymous) {
+        return L10n.channelEditAdminPermissionAnonymous
     } else {
         return ""
     }
@@ -365,6 +367,7 @@ private func channelAdminControllerEntries(state: ChannelAdminControllerState, a
                 .canBanUsers,
                 .canInviteUsers,
                 .canPinMessages,
+                .canBeAnonymous,
                 .canAddAdmins
             ]
         }
@@ -389,11 +392,14 @@ private func channelAdminControllerEntries(state: ChannelAdminControllerState, a
             sectionId += 1
             
            
-            if !isCreator || channel.isChannel {
-                entries.append(.description(sectionId, descId, L10n.channelAdminWhatCanAdminDo, .textTopItem))
-                descId += 1
+            if (channel.isSupergroup) || channel.isChannel {
+                if !isCreator || channel.isChannel {
+                    entries.append(.description(sectionId, descId, L10n.channelAdminWhatCanAdminDo, .textTopItem))
+                    descId += 1
+                }
+               
                 
-                let accountUserRightsFlags: TelegramChatAdminRightsFlags
+                var accountUserRightsFlags: TelegramChatAdminRightsFlags
                 if channel.flags.contains(.isCreator) {
                     accountUserRightsFlags = maskRightsFlags
                 } else if let adminRights = channel.adminRights {
@@ -407,8 +413,10 @@ private func channelAdminControllerEntries(state: ChannelAdminControllerState, a
                     currentRightsFlags = updatedFlags
                 } else if let initialParticipant = initialParticipant, case let .member(_, _, maybeAdminRights, _, _) = initialParticipant, let adminRights = maybeAdminRights {
                     currentRightsFlags = adminRights.rights.flags
+                } else if let adminRights = channel.adminRights {
+                    currentRightsFlags = adminRights.flags
                 } else {
-                    currentRightsFlags = accountUserRightsFlags.subtracting(.canAddAdmins)
+                    currentRightsFlags = accountUserRightsFlags.subtracting([.canAddAdmins])
                 }
                 
                 if accountUserRightsFlags.contains(.canAddAdmins) {
@@ -420,21 +428,27 @@ private func channelAdminControllerEntries(state: ChannelAdminControllerState, a
                 
                 let list = rightsOrder.filter {
                     accountUserRightsFlags.contains($0)
+                }.filter { right in
+                    if channel.isSupergroup, isCreator, right != .canBeAnonymous {
+                        return false
+                    }
+                    return true
                 }
+                
+                
                 
                 for (i, right) in list.enumerated() {
                     entries.append(.rightItem(sectionId, index, stringForRight(right: right, isGroup: isGroup, defaultBannedRights: channel.defaultBannedRights), right, currentRightsFlags, currentRightsFlags.contains(right), !state.updating, bestGeneralViewType(list, for: i)))
                     index += 1
                 }
-                entries.append(.description(sectionId, descId, addAdminsEnabled ? L10n.channelAdminAdminAccess : L10n.channelAdminAdminRestricted, .textBottomItem))
-                descId += 1
-                
+                if !isCreator || channel.isChannel {
+                    entries.append(.description(sectionId, descId, addAdminsEnabled ? L10n.channelAdminAdminAccess : L10n.channelAdminAdminRestricted, .textBottomItem))
+                    descId += 1
+                }
                 if channel.flags.contains(.isCreator), !admin.isBot {
-                    if currentRightsFlags.contains(maskRightsFlags) {
-                        entries.append(.section(sectionId))
-                        sectionId += 1
-                        entries.append(.changeOwnership(sectionId, descId, channel.isChannel ? L10n.channelAdminTransferOwnershipChannel : L10n.channelAdminTransferOwnershipGroup, .singleItem))
-                    }
+                    entries.append(.section(sectionId))
+                    sectionId += 1
+                    entries.append(.changeOwnership(sectionId, descId, channel.isChannel ? L10n.channelAdminTransferOwnershipChannel : L10n.channelAdminTransferOwnershipGroup, .singleItem))
                 }
             }
 
@@ -521,6 +535,7 @@ private func channelAdminControllerEntries(state: ChannelAdminControllerState, a
                 .canBanUsers,
                 .canInviteUsers,
                 .canPinMessages,
+                .canBeAnonymous,
                 .canAddAdmins
             ]
             
@@ -892,9 +907,9 @@ class ChannelAdminController: TableModalViewController {
                         
                         if updateFlags == nil {
                             switch initialParticipant {
-                            case .creator:
+                            case let .creator(_, info, _):
                                 if stateValue.with ({ $0.rank != $0.initialRank }) {
-                                    updateFlags = .groupSpecific
+                                    updateFlags = info?.rights.flags ?? .groupSpecific
                                 }
                             case let .member(member):
                                 if member.adminInfo?.rights == nil {

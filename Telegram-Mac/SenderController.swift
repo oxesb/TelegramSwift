@@ -53,7 +53,9 @@ class VoiceSenderContainer : MediaSenderContainer {
     public init(data:RecordedAudioData, id: Int64?) {
         self.data = data
         self.id = id
-        super.init(path: data.path)
+        let path = NSTemporaryDirectory() + "\(arc4random64())"
+        try? data.compressedData.write(to: URL.init(fileURLWithPath: path))
+        super.init(path: path)
         
     }
 }
@@ -461,9 +463,12 @@ class Sender: NSObject {
             attributes.append(OutgoingScheduleInfoMessageAttribute(scheduleTime: Int32(date.timeIntervalSince1970)))
         }
         
+        let replyId = chatInteraction.presentation.interfaceState.replyMessageId ?? chatInteraction.mode.threadId
+
+        
         for path in media {
             senders.append(generateMedia(for: path, account: context.account, isSecretRelated: peerId.namespace == Namespaces.Peer.SecretChat) |> mapToSignal { media, caption -> Signal< [MessageId?], NoError> in
-                return enqueueMessages(context: context, peerId: peerId, messages: [EnqueueMessage.message(text: caption, attributes:attributes, mediaReference: AnyMediaReference.standalone(media: media), replyToMessageId: chatInteraction.presentation.interfaceState.replyMessageId, localGroupingKey: nil)])
+                return enqueueMessages(context: context, peerId: peerId, messages: [EnqueueMessage.message(text: caption, attributes:attributes, mediaReference: AnyMediaReference.standalone(media: media), replyToMessageId: replyId, localGroupingKey: nil)])
             })
         }
         
@@ -503,7 +508,7 @@ class Sender: NSObject {
             attributes.append(OutgoingScheduleInfoMessageAttribute(scheduleTime: Int32(date.timeIntervalSince1970)))
         }
         
-        let replyId = chatInteraction.presentation.interfaceState.replyMessageId
+        let replyId = chatInteraction.presentation.interfaceState.replyMessageId ?? chatInteraction.mode.threadId
         
         let localGroupingKey = isCollage ? arc4random64() : nil
         

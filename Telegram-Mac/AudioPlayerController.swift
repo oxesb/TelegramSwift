@@ -306,6 +306,23 @@ enum APEntry : Comparable, Identifiable {
     func isEqual(to message:Message) -> Bool {
         return stableId == message.chatStableId
     }
+    
+    func isEqual(to messageId: MessageId) -> Bool {
+        switch self {
+        case let .song(message):
+            return message.id == messageId
+        case let .single(wrapper):
+            if let stableId = wrapper.id.base as? ChatHistoryEntryId {
+                switch stableId {
+                case let .message(message):
+                    return message.id == messageId
+                default:
+                    break
+                }
+            }
+        }
+        return false
+    }
 
     var index: MessageIndex {
         switch self {
@@ -537,14 +554,15 @@ class APController : NSResponder {
         }
     }
     
-    var volume: Float = FastSettings.volumeRate {
+    var volume: Float = 1.0 {
         didSet {
             mediaPlayer?.setVolume(volume)
         }
     }
     
-    init(context: AccountContext, streamable: Bool, baseRate: Double) {
+    init(context: AccountContext, streamable: Bool, baseRate: Double, volume: Float) {
         self.context = context
+        self.volume = volume
         self.streamable = streamable
         self.baseRate = baseRate
         super.init()
@@ -577,7 +595,7 @@ class APController : NSResponder {
 
     fileprivate func merge(with transition:APTransition) {
 
-        var previous:[APItem] = self.items.modify({$0})
+        let previous:[APItem] = self.items.modify({$0})
         let current = self.current
         let items = self.items.modify { items -> [APItem] in
             var new:[APItem] = items
@@ -770,13 +788,8 @@ class APController : NSResponder {
             itemDisposable.set(item.pullResource().start(next: { [weak self] resource in
                 if let strongSelf = self {
                     if resource.complete {
-                        //                    strongSelf.player = .player(for: resource.path)
-                        //                    strongSelf.player?.delegate = strongSelf
-                        //                    strongSelf.player?.play()
-                        
-                        
                         let items = strongSelf.items.modify({$0}).filter({$0 is APSongItem}).map{$0 as! APSongItem}
-                        if let index = items.index(of: item) {
+                        if let index = items.firstIndex(of: item) {
                             let previous = index - 1
                             let next = index + 1
                             if previous >= 0 {
@@ -928,7 +941,7 @@ class APController : NSResponder {
     }
 
     func remove(listener:NSObject) {
-        let index = listeners.index(where: { (weakValue) -> Bool in
+        let index = listeners.firstIndex(where: { (weakValue) -> Bool in
             return listener == weakValue.value
         })
         if let index = index {
@@ -939,14 +952,19 @@ class APController : NSResponder {
 
 class APChatController : APController {
 
-    private let peerId:PeerId
+    let chatLocationInput:ChatLocationInput
+    fileprivate let mode: ChatMode
     private let index:MessageIndex?
-
-    init(context: AccountContext, peerId: PeerId, index: MessageIndex?, streamable: Bool, baseRate: Double = 1.0) {
-        self.peerId = peerId
+    let messages: [Message]
+    init(context: AccountContext, chatLocationInput: ChatLocationInput, mode: ChatMode, index: MessageIndex?, streamable: Bool, baseRate: Double = 1.0, volume: Float = 1.0, messages: [Message] = []) {
+        self.chatLocationInput = chatLocationInput
+        self.mode = mode
         self.index = index
-        super.init(context: context, streamable: streamable, baseRate: baseRate)
+        self.messages = messages
+        super.init(context: context, streamable: streamable, baseRate: baseRate, volume: volume)
     }
+    
+    
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -958,29 +976,48 @@ class APChatController : APController {
         let list = self.entries
         let items = self.items
         let account = self.context.account
-        let peerId = self.peerId
+        let chatLocationInput = self.chatLocationInput
         let index = self.index
-        let apply = history.get() |> distinctUntilChanged |> mapToSignal { location -> Signal<(MessageHistoryView, ViewUpdateType, InitialMessageHistoryData?), NoError> in
-            switch location {
-            case .initial:
-                return account.viewTracker.aroundMessageHistoryViewForLocation(.peer(peerId), index: MessageHistoryAnchorIndex.upperBound, anchorIndex: MessageHistoryAnchorIndex.upperBound, count: 100, fixedCombinedReadStates: nil, tagMask: tagMask, orderStatistics: [], additionalData: [])
-            case let .index(index):
-                return account.viewTracker.aroundMessageHistoryViewForLocation(.peer(peerId), index: MessageHistoryAnchorIndex.message(index), anchorIndex: MessageHistoryAnchorIndex.message(index), count: 100, fixedCombinedReadStates: nil, tagMask: tagMask, orderStatistics: [], additionalData: [])
-            }
-
-        } |> map { view -> (APHistory?,APHistory) in
+        let mode = self.mode
+        let apply: Signal<APTransition, NoError>
+        if messages.isEmpty {
+            apply = history.get() |> distinctUntilChanged |> mapToSignal { location -> Signal<(MessageHistoryView, ViewUpdateType, InitialMessageHistoryData?), NoError> in
+                switch mode {
+                case .scheduled:
+                    return account.viewTracker.scheduledMessagesViewForLocation(chatLocationInput, additionalData: [])
+                default:
+                    switch location {
+                    case .initial:
+                        return account.viewTracker.aroundMessageHistoryViewForLocation(chatLocationInput, index: MessageHistoryAnchorIndex.upperBound, anchorIndex: MessageHistoryAnchorIndex.upperBound, count: 100, fixedCombinedReadStates: nil, tagMask: tagMask, orderStatistics: [], additionalData: [])
+                    case let .index(index):
+                        return account.viewTracker.aroundMessageHistoryViewForLocation(chatLocationInput, index: MessageHistoryAnchorIndex.message(index), anchorIndex: MessageHistoryAnchorIndex.message(index), count: 100, fixedCombinedReadStates: nil, tagMask: tagMask, orderStatistics: [], additionalData: [])
+                    }
+                }
+               
+                
+                } |> map { view -> (APHistory?,APHistory) in
+                    var entries:[APEntry] = []
+                    for viewEntry in view.0.entries {
+                        if let media = viewEntry.message.media.first as? TelegramMediaFile, media.isMusicFile || media.isInstantVideo || media.isVoice {
+                            entries.append(.song(viewEntry.message))
+                        }
+                    }
+                    
+                    let new = APHistory(original: view.0, filtred: entries)
+                    return (list.swap(new),new)
+                }
+                |> mapToQueue { view -> Signal<APTransition, NoError> in
+                    let transition = prepareItems(from: view.0?.filtred, to: view.1.filtred, account: account)
+                    return transition
+                } |> deliverOnMainQueue
+        } else {
             var entries:[APEntry] = []
-            for viewEntry in view.0.entries {
-                entries.append(.song(viewEntry.message))
+            for message in messages {
+                entries.append(.song(message))
             }
-
-            let new = APHistory(original: view.0, filtred: entries)
-            return (list.swap(new),new)
+            apply = prepareItems(from: [], to: entries, account: account) |> deliverOnMainQueue
         }
-        |> mapToQueue { view -> Signal<APTransition, NoError> in
-            let transition = prepareItems(from: view.0?.filtred, to: view.1.filtred, account: account)
-            return transition
-        } |> deliverOnMainQueue
+        
 
         let first:Atomic<Bool> = Atomic(value:true)
         disposable.set(apply.start(next: {[weak self] (transition) in
@@ -1016,8 +1053,8 @@ class APChatController : APController {
 
 class APChatMusicController : APChatController {
 
-    init(context: AccountContext, peerId: PeerId, index: MessageIndex?, baseRate: Double = 1.0) {
-        super.init(context: context, peerId: peerId, index: index, streamable: true, baseRate: baseRate)
+    init(context: AccountContext, chatLocationInput: ChatLocationInput, mode: ChatMode, index: MessageIndex?, baseRate: Double = 1.0, volume: Float = 1.0, messages: [Message] = []) {
+        super.init(context: context, chatLocationInput: chatLocationInput, mode: mode, index: index, streamable: true, baseRate: baseRate, volume: volume, messages: messages)
     }
 
     required init?(coder: NSCoder) {
@@ -1031,8 +1068,8 @@ class APChatMusicController : APChatController {
 
 class APChatVoiceController : APChatController {
     private let markAsConsumedDisposable = MetaDisposable()
-    init(context: AccountContext, peerId: PeerId, index: MessageIndex?, baseRate: Double = 1.0) {
-        super.init(context: context, peerId: peerId, index:index, streamable: false, baseRate: baseRate)
+    init(context: AccountContext, chatLocationInput: ChatLocationInput, mode: ChatMode, index: MessageIndex?, baseRate: Double = 1.0, volume: Float = 1.0) {
+        super.init(context: context, chatLocationInput: chatLocationInput, mode: mode, index:index, streamable: false, baseRate: baseRate, volume: volume)
     }
 
     required init?(coder: NSCoder) {
@@ -1068,9 +1105,9 @@ class APChatVoiceController : APChatController {
 
 class APSingleResourceController : APController {
     let wrapper:APSingleWrapper
-    init(context: AccountContext, wrapper:APSingleWrapper, streamable: Bool, baseRate: Double = 1.0) {
+    init(context: AccountContext, wrapper:APSingleWrapper, streamable: Bool, baseRate: Double = 1.0, volume: Float = 1.0) {
         self.wrapper = wrapper
-        super.init(context: context, streamable: streamable, baseRate: baseRate)
+        super.init(context: context, streamable: streamable, baseRate: baseRate, volume: volume)
         merge(with: APTransition(inserted: [(0,APSongItem(.single(wrapper), account))], removed: [], updated: []))
     }
 

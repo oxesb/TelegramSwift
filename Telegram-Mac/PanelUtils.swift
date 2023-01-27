@@ -14,10 +14,10 @@ import Postbox
 import TelegramCore
 import SyncCore
 
-let mediaExts:[String] = ["png","jpg","jpeg","tiff","mp4","mov","avi", "gif", "m4v"]
-let photoExts:[String] = ["png","jpg","jpeg","tiff"]
+let mediaExts:[String] = ["png","jpg","jpeg","tiff", "heic","mp4","mov","avi", "gif", "m4v"]
+let photoExts:[String] = ["png","jpg","jpeg","tiff", "heic"]
 let videoExts:[String] = ["mp4","mov","avi", "m4v"]
-
+let audioExts:[String] = ["mp3","wav", "m4a"]
 
 func filePanel(with exts:[String]? = nil, allowMultiple:Bool = true, canChooseDirectories: Bool = false, for window:Window, completion:@escaping ([String]?)->Void) {
     var result:[String] = []
@@ -285,7 +285,7 @@ func modernConfirm(for window:Window, account: Account?, peerId: PeerId?, header
     
     _ = signal.start(next: { peer in
         if let peer = peer, let account = account {
-            alert.messageText = account.peerId == peer.id ? L10n.peerSavedMessages : peer.displayTitle
+            alert.messageText = header.isEmpty || header == appName ? (account.peerId == peer.id ? L10n.peerSavedMessages : peer.displayTitle) : header
             alert.icon = nil
             if peerId == account.peerId {
                 let icon = theme.icons.searchSaved

@@ -28,7 +28,7 @@ class InlineAudioPlayerView: NavigationHeaderView, APDelegate {
     private let containerView:Control
     private let separator:View = View()
     private let playingSpeed: ImageButton = ImageButton()
-    private var controller:APController? {
+    private(set) var controller:APController? {
         didSet {
             if let controller = controller {
                 self.bufferingStatusDisposable.set((controller.bufferingStatus
@@ -175,10 +175,10 @@ class InlineAudioPlayerView: NavigationHeaderView, APDelegate {
         guard let window = kitWindow, let context = self.context else {return}
         let point = containerView.convert(window.mouseLocationOutsideOfEventStream, from: nil)
         if NSPointInRect(point, textView.frame) {
-            if let controller = controller, let song = controller.currentSong, controller is APChatMusicController {
+            if let controller = controller as? APChatMusicController, let song = controller.currentSong {
                 switch song.stableId {
                 case let .message(message):
-                    showPopover(for: textView, with: PlayerListController(audioPlayer: self, context: controller.context, currentContext: context, messageIndex: MessageIndex(message)), edge: .minX, inset: NSMakePoint((300 - textView.frame.width) / 2, -60))
+                    showPopover(for: textView, with: PlayerListController(audioPlayer: self, context: controller.context, currentContext: context, messageIndex: MessageIndex(message), messages: controller.messages), edge: .minX, inset: NSMakePoint((300 - textView.frame.width) / 2, -60))
                 default:
                     break
                 }
@@ -290,7 +290,11 @@ class InlineAudioPlayerView: NavigationHeaderView, APDelegate {
                     contentView = view
                 }
                 
-                if let view = contentView as? ChatAudioContentView {
+                if let view = view as? ChatGroupedView {
+                    for content in view.contents {
+                        controller.add(listener: content)
+                    }
+                } else if let view = contentView as? ChatAudioContentView {
                     controller.add(listener: view)
                 } else if let view = contentView as? ChatVideoMessageContentView {
                     controller.add(listener: view)

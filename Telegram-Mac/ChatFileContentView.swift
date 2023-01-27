@@ -62,7 +62,7 @@ class ChatFileContentView: ChatMediaContentView {
     }
     
     override func mouseUp(with event: NSEvent) {
-        if thumbView._mouseInside() {
+        if thumbView._mouseInside(), userInteractionEnabled {
             executeInteraction(false)
         } else {
             super.mouseUp(with: event)
@@ -84,7 +84,13 @@ class ChatFileContentView: ChatMediaContentView {
             if media.isGraphicFile || media.isVideoFile {
                 showChatGallery(context: context, message: parent, table, parameters as? ChatMediaGalleryParameters, type: media.isVideoFile ? .alone : .history)
             } else {
-                QuickLookPreview.current.show(context: context, with: media, stableId: parent.chatStableId, self.table)
+                if media.mimeType.contains("svg") || (media.fileName ?? "").hasSuffix(".svg") {
+                    confirm(for: context.window, information: L10n.chatFileQuickLookSvg, successHandler: { _ in
+                        QuickLookPreview.current.show(context: context, with: media, stableId: parent.chatStableId, self.table)
+                    })
+                } else {
+                    QuickLookPreview.current.show(context: context, with: media, stableId: parent.chatStableId, self.table)
+                }
             }
         }
     }
@@ -92,13 +98,10 @@ class ChatFileContentView: ChatMediaContentView {
     
     override func cancelFetching() {
         if let context = context, let media = media as? TelegramMediaFile {
-            if let parent = parent {
-                messageMediaFileCancelInteractiveFetch(context: context, messageId: parent.id, fileReference: FileMediaReference.message(message: MessageReference(parent), media: media))
+            if let parameters = parameters, let parent = parent {
+                parameters.cancelOperation(parent, media)
             } else {
                 cancelFreeMediaFileInteractiveFetch(context: context, resource: media.resource)
-            }
-            if let resource = media.resource as? LocalFileArchiveMediaResource {
-                archiver.remove(.resource(resource))
             }
         }
     }
@@ -167,7 +170,7 @@ class ChatFileContentView: ChatMediaContentView {
             if let parent = parent, parent.flags.contains(.Unsent) && !parent.flags.contains(.Failed) {
                 let _ = attr.append(string: tr(L10n.messagesFileStateFetchingOut1(Int(progress * 100.0))), color: presentation.grayText, font: .normal(.text))
             } else {
-                let current = String.prettySized(with: Int(Float(file.elapsedSize) * progress), removeToken: true)
+                let current = String.prettySized(with: Int(Float(file.elapsedSize) * progress), removeToken: false)
                 let size = "\(current) / \(String.prettySized(with: file.elapsedSize))"
                 let _ = attr.append(string: size, color: presentation.grayText, font: .normal(.text))
             }
@@ -200,7 +203,6 @@ class ChatFileContentView: ChatMediaContentView {
         
         var updatedStatusSignal: Signal<(MediaResourceStatus, ArchiveStatus?), NoError>?
         let parameters = parameters as? ChatFileLayoutParameters
-        actionText.backgroundColor = theme.colors.background
         
         var archiveSignal:Signal<ArchiveStatus?, NoError> = .single(nil)
         if let resource = file.resource as? LocalFileArchiveMediaResource {
@@ -263,6 +265,16 @@ class ChatFileContentView: ChatMediaContentView {
         }
         
         self.setNeedsDisplay()
+        
+        if let signal = updatedStatusSignal, let parent = parent, let parameters = parameters {
+            updatedStatusSignal = combineLatest(signal, parameters.getUpdatingMediaProgress(parent.id)) |> map { value, updating in
+                if let progress = updating {
+                    return (.Fetching(isActive: true, progress: progress), value.1)
+                } else {
+                    return value
+                }
+            }
+        }
                 
         if let updatedStatusSignal = updatedStatusSignal {
             self.statusDisposable.set((updatedStatusSignal |> deliverOnMainQueue).start(next: { [weak self, weak file] status, archiveStatus in
@@ -316,7 +328,11 @@ class ChatFileContentView: ChatMediaContentView {
                         case .Remote:
                             self.thumbProgress?.state = .Remote
                         case let .Fetching(_, progress):
-                            self.thumbProgress?.state = .Fetching(progress: progress, force: false)
+                            if progress == 1.0, parent?.groupingKey != nil {
+                                self.thumbProgress?.state = .Success
+                            } else {
+                                self.thumbProgress?.state = .Fetching(progress: progress, force: false)
+                            }
                         default:
                             break
                         }
@@ -381,8 +397,12 @@ class ChatFileContentView: ChatMediaContentView {
                     }
                     progress = max(progress, 0.1)
                     progressView.theme = RadialProgressTheme(backgroundColor: file.previewRepresentations.isEmpty ? presentation.activityBackground : theme.colors.blackTransparent, foregroundColor:  file.previewRepresentations.isEmpty ? presentation.activityForeground : .white, icon: nil)
-                    progressView.state = archiveStatus != nil && self.parent == nil ? .Icon(image: presentation.fileThumb, mode: .normal) : .Fetching(progress: progress, force: false)
                     
+                    if progress == 1.0, parent?.groupingKey != nil {
+                        progressView.state = .Success
+                    } else {
+                        progressView.state = archiveStatus != nil && self.parent == nil ? .Icon(image: presentation.fileThumb, mode: .normal) : .Fetching(progress: progress, force: false)
+                    }
                 case .Local:
                     progressView.theme = RadialProgressTheme(backgroundColor: file.previewRepresentations.isEmpty ? presentation.activityBackground : .clear, foregroundColor:  file.previewRepresentations.isEmpty ? presentation.activityForeground : .clear, icon: nil)
                     progressView.state = !file.previewRepresentations.isEmpty ? .None : .Icon(image: presentation.fileThumb, mode: .normal)

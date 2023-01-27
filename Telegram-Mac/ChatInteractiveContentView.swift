@@ -381,7 +381,7 @@ class ChatInteractiveContentView: ChatMediaContentView {
         let versionUpdated = parent?.stableVersion != self.parent?.stableVersion
         
         
-        let mediaUpdated = self.media == nil || !media.isSemanticallyEqual(to: self.media!) || (parent?.autoremoveAttribute != self.parent?.autoremoveAttribute)
+        let mediaUpdated = self.media == nil || !media.isSemanticallyEqual(to: self.media!) || (parent?.autoremoveAttribute != self.parent?.autoremoveAttribute) || positionFlags != self.positionFlags || animated || self.frame.size != size
         if mediaUpdated {
             self.autoplayVideoView = nil
         }
@@ -511,11 +511,8 @@ class ChatInteractiveContentView: ChatMediaContentView {
                             return (status, status)
                         }
                     }
-                    
                 }
             }
-            
-            
             
             self.image.setSignal(signal: cachedMedia(media: media, arguments: arguments, scale: backingScaleFactor, positionFlags: positionFlags), clearInstantly: clearInstantly)
 
@@ -528,8 +525,20 @@ class ChatInteractiveContentView: ChatMediaContentView {
             }
         }
         
-                
+        if let signal = updatedStatusSignal, let parent = parent, let parameters = parameters {
+            updatedStatusSignal = combineLatest(signal, parameters.getUpdatingMediaProgress(parent.id)) |> map { value, updating in
+                if let progress = updating {
+                    return (.Fetching(isActive: true, progress: progress), .Fetching(isActive: true, progress: progress))
+                } else {
+                    return value
+                }
+            }
+        }
+        
         self.image.set(arguments: arguments)
+        
+        self.image._change(size: size, animated: animated)
+        
         if arguments.imageSize.width == arguments.boundingSize.width {
             if let positionFlags = positionFlags {
                 autoplayVideoView?.view.positionFlags = positionFlags
@@ -547,8 +556,6 @@ class ChatInteractiveContentView: ChatMediaContentView {
         
         if let updateStatusSignal = updatedStatusSignal {
             self.statusDisposable.set(updateStatusSignal.start(next: { [weak self] (status, authentic) in
-                
-                
                 
                 if let strongSelf = self {
                     
@@ -692,7 +699,10 @@ class ChatInteractiveContentView: ChatMediaContentView {
                     
                     switch progressStatus {
                     case let .Fetching(_, progress):
-                        strongSelf.progressView?.state = parent == nil ? .ImpossibleFetching(progress: progress, force: false) : (progress == 1.0 && strongSelf.parent?.groupingKey != nil ? .Success : .Fetching(progress: progress, force: false))
+                        
+                        let sentGrouped = parent?.groupingKey != nil && (parent!.flags.contains(.Sending) || parent!.flags.contains(.Unsent))
+                        
+                        strongSelf.progressView?.state = parent == nil ? .ImpossibleFetching(progress: progress, force: false) : (progress == 1.0 && sentGrouped ? .Success : .Fetching(progress: progress, force: false))
                     case .Local:
                         var state: RadialProgressState = .None
                         if containsSecretMedia {
@@ -745,25 +755,16 @@ class ChatInteractiveContentView: ChatMediaContentView {
         statusDisposable.set(nil)
     }
     
-    override func cancelFetching() {
-        if let context = context, let parent = parent {
-            if let media = media as? TelegramMediaFile {
-                messageMediaFileCancelInteractiveFetch(context: context, messageId: parent.id, fileReference: FileMediaReference.message(message: MessageReference(parent), media: media))
-            } else if let media = media as? TelegramMediaImage {
-                chatMessagePhotoCancelInteractiveFetch(account: context.account, photo: media)
-            }
-        }
-        
-    }
+   
     override func fetch() {
         if let context = context {
-            if let media = media as? TelegramMediaFile {
+            if let media = media as? TelegramMediaFile, !media.isLocalResource {
                 if let parent = parent {
                     fetchDisposable.set(messageMediaFileInteractiveFetched(context: context, messageId: parent.id, fileReference: FileMediaReference.message(message: MessageReference(parent), media: media)).start())
                 } else {
                     fetchDisposable.set(freeMediaFileInteractiveFetched(context: context, fileReference: FileMediaReference.standalone(media: media)).start())
                 }
-            } else if let media = media as? TelegramMediaImage {
+            } else if let media = media as? TelegramMediaImage, !media.isLocalResource {
                 fetchDisposable.set(chatMessagePhotoInteractiveFetched(account: context.account, imageReference: parent != nil ? ImageMediaReference.message(message: MessageReference(parent!), media: media) : ImageMediaReference.standalone(media: media)).start())
             }
         }

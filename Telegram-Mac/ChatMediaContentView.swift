@@ -94,7 +94,17 @@ class ChatMediaContentView: Control, NSDraggingSource, NSPasteboardItemDataProvi
     }
     
     func cancelFetching() {
-        
+        if let context = context, let media = media {
+            if let parent = parent, let parameters = parameters {
+                parameters.cancelOperation(parent, media)
+            } else {
+                if let media = media as? TelegramMediaFile {
+                    cancelFreeMediaFileInteractiveFetch(context: context, resource: media.resource)
+                } else if let media = media as? TelegramMediaImage {
+                    chatMessagePhotoCancelInteractiveFetch(account: context.account, photo: media)
+                }
+            }
+        }
     }
     
     func open() -> Void {
@@ -114,7 +124,7 @@ class ChatMediaContentView: Control, NSDraggingSource, NSPasteboardItemDataProvi
     }
     
     func executeInteraction(_ isControl:Bool) -> Void {
-        if let fetchStatus = self.fetchStatus {
+        if let fetchStatus = self.fetchStatus, userInteractionEnabled {
             switch fetchStatus {
             case .Fetching:
                 if isControl {

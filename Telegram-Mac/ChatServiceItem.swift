@@ -25,7 +25,7 @@ class ChatServiceItem: ChatRowItem {
         
         
         
-        let linkColor: NSColor = theme.controllerBackgroundMode.hasWallpapaer ? theme.chatServiceItemTextColor : entry.renderType == .bubble ? theme.chat.linkColor(true, entry.renderType == .bubble) : theme.colors.link
+        let linkColor: NSColor = theme.controllerBackgroundMode.hasWallpaper ? theme.chatServiceItemTextColor : entry.renderType == .bubble ? theme.chat.linkColor(true, entry.renderType == .bubble) : theme.colors.link
         let grayTextColor: NSColor = theme.chatServiceItemTextColor
 
         let authorId:PeerId? = message.author?.id
@@ -39,7 +39,7 @@ class ChatServiceItem: ChatRowItem {
         
         let nameColor:(PeerId) -> NSColor = { peerId in
             
-            if theme.controllerBackgroundMode.hasWallpapaer {
+            if theme.controllerBackgroundMode.hasWallpaper {
                 return theme.chatServiceItemTextColor
             }
             
@@ -63,7 +63,7 @@ class ChatServiceItem: ChatRowItem {
                 switch media.action {
                 case let .groupCreated(title: title):
                     if !peer.isChannel {
-                        let _ =  attributedString.append(string: L10n.chatServiceGroupCreated(authorName, title), color: grayTextColor, font: .normal(theme.fontSize))
+                        let _ =  attributedString.append(string: L10n.chatServiceGroupCreated1(authorName, title), color: grayTextColor, font: .normal(theme.fontSize))
                         
                         if let authorId = authorId {
                             let range = attributedString.string.nsstring.range(of: authorName)
@@ -79,7 +79,7 @@ class ChatServiceItem: ChatRowItem {
                     if peerIds.first == authorId {
                         let _ =  attributedString.append(string: tr(L10n.chatServiceGroupAddedSelf(authorName)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                     } else {
-                        let _ =  attributedString.append(string: tr(L10n.chatServiceGroupAddedMembers(authorName, "")), color: grayTextColor, font: NSFont.normal(theme.fontSize))
+                        let _ =  attributedString.append(string: tr(L10n.chatServiceGroupAddedMembers1(authorName, "")), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                         for peerId in peerIds {
                             
                             if let peer = message.peers[peerId] {
@@ -102,7 +102,7 @@ class ChatServiceItem: ChatRowItem {
                     if peerIds.first == message.author?.id {
                         let _ =  attributedString.append(string: tr(L10n.chatServiceGroupRemovedSelf(authorName)), color: grayTextColor, font: .normal(theme.fontSize))
                     } else {
-                        let _ =  attributedString.append(string: tr(L10n.chatServiceGroupRemovedMembers(authorName, "")), color: grayTextColor, font: .normal(theme.fontSize))
+                        let _ =  attributedString.append(string: tr(L10n.chatServiceGroupRemovedMembers1(authorName, "")), color: grayTextColor, font: .normal(theme.fontSize))
                         for peerId in peerIds {
                             
                             if let peer = message.peers[peerId] {
@@ -147,7 +147,7 @@ class ChatServiceItem: ChatRowItem {
                     
                     
                 case let .titleUpdated(title):
-                    let _ =  attributedString.append(string: peer.isChannel ? tr(L10n.chatServiceChannelUpdatedTitle(title)) : tr(L10n.chatServiceGroupUpdatedTitle(authorName, title)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
+                    let _ =  attributedString.append(string: peer.isChannel ? tr(L10n.chatServiceChannelUpdatedTitle(title)) : tr(L10n.chatServiceGroupUpdatedTitle1(authorName, title)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                     
                     if let authorId = authorId {
                         
@@ -167,12 +167,12 @@ class ChatServiceItem: ChatRowItem {
                         }
                     }
                     let cutted = replyMessageText.prefixWithDots(30)
-                    _ = attributedString.append(string: tr(L10n.chatServiceGroupUpdatedPinnedMessage(authorName, cutted)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
+                    _ = attributedString.append(string: tr(L10n.chatServiceGroupUpdatedPinnedMessage1(authorName, cutted)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                     let pinnedRange = attributedString.string.nsstring.range(of: cutted)
                     if pinnedRange.location != NSNotFound {
                         attributedString.add(link: inAppLink.callback("", { [weak chatInteraction] _ in
                             if let pinnedId = pinnedId {
-                                chatInteraction?.focusMessageId(nil, pinnedId, .center(id: 0, innerId: nil, animated: true, focus: .init(focus: true), inset: 0))
+                                chatInteraction?.focusMessageId(nil, pinnedId, .CenterEmpty)
                             }
                         }), for: pinnedRange, color: grayTextColor)
                         attributedString.addAttribute(NSAttributedString.Key.font, value: NSFont.medium(theme.fontSize), range: pinnedRange)
@@ -277,10 +277,10 @@ class ChatServiceItem: ChatRowItem {
                     }
                     
                     if let message = paymentMessage, let media = message.media.first as? TelegramMediaInvoice, let peer = messageMainPeer(message) {
-                        _ = attributedString.append(string: tr(L10n.chatServicePaymentSent(TGCurrencyFormatter.shared().formatAmount(totalAmount, currency: currency), peer.displayTitle, media.title)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
+                        _ = attributedString.append(string: tr(L10n.chatServicePaymentSent1(TGCurrencyFormatter.shared().formatAmount(totalAmount, currency: currency), peer.displayTitle, media.title)), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                         attributedString.detectBoldColorInString(with: .medium(theme.fontSize))
                     } else {
-                        _ = attributedString.append(string: tr(L10n.chatServicePaymentSent("", "", "")), color: grayTextColor, font: NSFont.normal(theme.fontSize))
+                        _ = attributedString.append(string: tr(L10n.chatServicePaymentSent1("", "", "")), color: grayTextColor, font: NSFont.normal(theme.fontSize))
                     }
                 case let .botDomainAccessGranted(domain):
                     _ = attributedString.append(string: L10n.chatServiceBotPermissionAllowed(domain), color: grayTextColor, font: NSFont.normal(theme.fontSize))
@@ -294,6 +294,39 @@ class ChatServiceItem: ChatRowItem {
                         let range = attributedString.string.nsstring.range(of: authorName)
                         attributedString.add(link:inAppLink.peerInfo(link: "", peerId:authorId, action:nil, openChat: false, postId: nil, callback: chatInteraction.openInfo), for: range, color: nameColor(authorId))
                         attributedString.addAttribute(.font, value: NSFont.medium(theme.fontSize), range: range)
+                    }
+                case let .geoProximityReached(fromId, toId, distance):
+                    let distanceString = stringForDistance(distance: Double(distance))
+                    let text: String
+                    if fromId == context.peerId {
+                        text = L10n.notificationProximityYouReached1(distanceString, message.peers[toId]?.displayTitle ?? "")
+                    } else if toId == context.peerId {
+                        text = L10n.notificationProximityReachedYou1(message.peers[fromId]?.displayTitle ?? "", distanceString)
+                    } else {
+                        text = L10n.notificationProximityReached1(message.peers[fromId]?.displayTitle ?? "", distanceString, message.peers[toId]?.displayTitle ?? "")
+                    }
+                    let _ = attributedString.append(string: text, color: grayTextColor, font: NSFont.normal(theme.fontSize))
+
+                    if let authorId = authorId {
+                        let range = attributedString.string.nsstring.range(of: authorName)
+                        if range.location != NSNotFound {
+                            attributedString.add(link:inAppLink.peerInfo(link: "", peerId:authorId, action:nil, openChat: false, postId: nil, callback: chatInteraction.openInfo), for: range, color: nameColor(authorId))
+                            attributedString.addAttribute(.font, value: NSFont.medium(theme.fontSize), range: range)
+                        }
+                    }
+                    if let peer = message.peers[toId], !peer.displayTitle.isEmpty {
+                        let range = attributedString.string.nsstring.range(of: peer.displayTitle)
+                        if range.location != NSNotFound {
+                            attributedString.add(link:inAppLink.peerInfo(link: "", peerId: peer.id, action:nil, openChat: false, postId: nil, callback: chatInteraction.openInfo), for: range, color: nameColor(peer.id))
+                            attributedString.addAttribute(.font, value: NSFont.medium(theme.fontSize), range: range)
+                        }
+                    }
+                    if let peer = message.peers[fromId], !peer.displayTitle.isEmpty {
+                        let range = attributedString.string.nsstring.range(of: peer.displayTitle)
+                        if range.location != NSNotFound {
+                            attributedString.add(link:inAppLink.peerInfo(link: "", peerId: peer.id, action:nil, openChat: false, postId: nil, callback: chatInteraction.openInfo), for: range, color: nameColor(peer.id))
+                            attributedString.addAttribute(.font, value: NSFont.medium(theme.fontSize), range: range)
+                        }
                     }
                 default:
                     break
@@ -363,13 +396,13 @@ class ChatServiceItem: ChatRowItem {
         if chatInteraction.presentation.state != .selecting {
             
             if let message = message, let peer = messageMainPeer(message) {
-                if peer.canSendMessage, !message.containsSecretMedia, canReplyMessage(message, peerId: peer.id) {
-                    items.append(ContextMenuItem(tr(L10n.messageContextReply1), handler: {
+                if !message.containsSecretMedia, canReplyMessage(message, peerId: peer.id, mode: chatInteraction.mode) {
+                    items.append(ContextMenuItem(L10n.messageContextReply1, handler: {
                         chatInteraction.setupReplyMessage(message.id)
                     }))
                 }
-                if canDeleteMessage(message, account: context.account) {
-                    items.append(ContextMenuItem(tr(L10n.messageContextDelete), handler: {
+                if canDeleteMessage(message, account: context.account, mode: chatInteraction.mode) {
+                    items.append(ContextMenuItem(L10n.messageContextDelete, handler: {
                         chatInteraction.deleteMessages([message.id])
                     }))
                 }

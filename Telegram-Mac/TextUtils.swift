@@ -28,7 +28,7 @@ func pullText(from message:Message, mediaViewType: MessageTextMediaViewType = .e
             if message.id.peerId.namespace == Namespaces.Peer.CloudUser, let _ = message.autoremoveAttribute {
                 messageText = tr(L10n.chatListServiceDestructingPhoto).nsstring
             } else {
-                messageText = L10n.chatListPhotoCountable(messagesCount).nsstring
+                messageText = L10n.chatListPhoto1Countable(messagesCount).nsstring
                 if !message.text.isEmpty {
                     switch mediaViewType {
                     case .emoji:
@@ -47,6 +47,9 @@ func pullText(from message:Message, mediaViewType: MessageTextMediaViewType = .e
                 messageText = L10n.chatListSticker(fileMedia.stickerText?.fixed ?? "").nsstring
             } else if fileMedia.isVoice {
                 messageText = L10n.chatListVoice.nsstring
+                if !message.text.fixed.isEmpty {
+                    messageText = ("🎤" + " " + message.text.fixed).nsstring
+                }
             } else if fileMedia.isMusic  {
                 messageText = ("🎵 " + fileMedia.musicText.0 + " - " + fileMedia.musicText.1).nsstring
             } else if fileMedia.isInstantVideo {
@@ -62,7 +65,7 @@ func pullText(from message:Message, mediaViewType: MessageTextMediaViewType = .e
                              messageText = (L10n.chatListGIF + ", " + message.text.fixed).nsstring
                         }
                     } else {
-                        messageText = L10n.chatListVideoCountable(messagesCount).nsstring
+                        messageText = L10n.chatListVideo1Countable(messagesCount).nsstring
                         if !message.text.fixed.isEmpty {
                             switch mediaViewType {
                             case .emoji:
@@ -280,7 +283,7 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
             if peerIds.first == authorId {
                 return L10n.chatServiceGroupAddedSelf(authorName)
             } else {
-                return L10n.chatServiceGroupAddedMembers(authorName, peerDebugDisplayTitles(peerIds, message.peers))
+                return L10n.chatServiceGroupAddedMembers1(authorName, peerDebugDisplayTitles(peerIds, message.peers))
             }
         case .phoneNumberRequest:
             return "phone number request"
@@ -290,7 +293,7 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
             if peer.isChannel {
                 return L10n.chatServiceChannelCreated
             } else {
-                return L10n.chatServiceGroupCreated(authorName, title)
+                return L10n.chatServiceGroupCreated1(authorName, title)
             }
         case .groupMigratedToChannel:
             return ""
@@ -338,7 +341,7 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
                         replyMessageText = pullText(from: message) as String
                     }
                 }
-                return L10n.chatServiceGroupUpdatedPinnedMessage(authorName, replyMessageText.prefixWithDots(15))
+                return L10n.chatServiceGroupUpdatedPinnedMessage1(authorName, replyMessageText.prefixWithDots(15))
             } else {
                 return L10n.chatServicePinnedMessage
             }
@@ -347,11 +350,11 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
             if peerIds.first == authorId {
                 return L10n.chatServiceGroupRemovedSelf(authorName)
             } else {
-                return L10n.chatServiceGroupRemovedMembers(authorName, peerCompactDisplayTitles(peerIds, message.peers))
+                return L10n.chatServiceGroupRemovedMembers1(authorName, peerCompactDisplayTitles(peerIds, message.peers))
             }
 
         case let .titleUpdated(title: title):
-            return peer.isChannel ? L10n.chatServiceChannelUpdatedTitle(title) : L10n.chatServiceGroupUpdatedTitle(authorName, title)
+            return peer.isChannel ? L10n.chatServiceChannelUpdatedTitle(title) : L10n.chatServiceGroupUpdatedTitle1(authorName, title)
         case let .phoneCall(callId: _, discardReason: reason, duration: duration, isVideo):
             
             if let duration = duration, duration > 0 {
@@ -405,6 +408,16 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
             return L10n.chatServiceSecureIdAccessGranted(peer.displayTitle, permissions)
         case .peerJoined:
             return L10n.chatServicePeerJoinedTelegram(authorName)
+        case let .geoProximityReached(fromId, toId, distance):
+            let distanceString = stringForDistance(distance: Double(distance))
+            if toId == account.peerId {
+                return L10n.notificationProximityReachedYou1(message.peers[fromId]?.displayTitle ?? "", distanceString)
+            } else if fromId == account.peerId {
+                return L10n.notificationProximityYouReached1(message.peers[toId]?.displayTitle ?? "", distanceString)
+            } else {
+                return L10n.notificationProximityReached1(message.peers[fromId]?.displayTitle ?? "", distanceString, message.peers[toId]?.displayTitle ?? "")
+            }
+
         }
     }
     
@@ -473,7 +486,9 @@ func stringStatus(for peerView:PeerView, context: AccountContext, theme:PeerStat
             if user.phone == "42777" || user.phone == "42470" || user.phone == "4240004" {
                 return PeerStatusStringResult(title, .initialize(string: L10n.peerServiceNotifications,  color: theme.statusColor, font: theme.statusFont))
             }
-            if user.flags.contains(.isSupport) {
+            if user.id == repliesPeerId {
+                return PeerStatusStringResult(title, .initialize(string: L10n.peerRepliesNotifications,  color: theme.statusColor, font: theme.statusFont))
+            } else if user.flags.contains(.isSupport) {
                 return PeerStatusStringResult(title, .initialize(string: L10n.presenceSupport,  color: theme.statusColor, font: theme.statusFont))
             } else if let _ = user.botInfo {
                 return PeerStatusStringResult(title, .initialize(string: L10n.presenceBot,  color: theme.statusColor, font: theme.statusFont))
@@ -522,7 +537,11 @@ func stringStatus(for peerView:PeerView, context: AccountContext, theme:PeerStat
                 if channel.isChannel {
                     membersLocalized = L10n.peerStatusSubscribersCountable(Int(memberCount))
                 } else {
-                    membersLocalized = L10n.peerStatusMemberCountable(Int(memberCount))
+                    if memberCount > 0 {
+                        membersLocalized = L10n.peerStatusMemberCountable(Int(memberCount))
+                    } else {
+                        membersLocalized = L10n.peerStatusGroup
+                    }
                 }
                 
                 let countString = membersLocalized.replacingOccurrences(of: "\(memberCount)", with: memberCount.formattedWithSeparator)

@@ -305,7 +305,7 @@ private func groupPeersEntries(state: GroupPeersState, isEditing: Bool, view: Pe
                 let memberStatus: GroupInfoMemberStatus
                 if access.highlightAdmins {
                     switch sortedParticipants[i].participant {
-                    case let .creator(_, rank):
+                    case let .creator(_, _, rank):
                         memberStatus = .admin(rank: rank ?? L10n.chatOwnerBadge)
                     case let .member(_, _, adminRights, _, rank):
                         memberStatus = adminRights != nil ? .admin(rank: rank ?? L10n.chatAdminBadge) : .member
@@ -416,7 +416,7 @@ func PeerMediaGroupPeersController(context: AccountContext, peerId: PeerId, edit
     
     let channelMembersPromise = Promise<[RenderedChannelParticipant]>()
     
-    let inputActivity = context.account.peerInputActivities(peerId: peerId)
+    let inputActivity = context.account.peerInputActivities(peerId: .init(peerId: peerId, threadId: nil))
         |> map { activities -> [PeerId : PeerInputActivity] in
             return activities.reduce([:], { (current, activity) -> [PeerId : PeerInputActivity] in
                 var current = current

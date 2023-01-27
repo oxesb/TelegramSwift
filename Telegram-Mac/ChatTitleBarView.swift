@@ -330,10 +330,34 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
             }
         }
     }
+    
+    private var rootRepliesCount: Int = 0 {
+        didSet {
+            updateTitle()
+        }
+    }
    
     var postboxView:PostboxView? {
         didSet {
-           updateStatus()
+           updateStatus(true)
+            switch chatInteraction.mode {
+            case let .replyThread(data, _):
+                let answersCount = chatInteraction.context.account.postbox.messageView(data.messageId)
+                    |> map {
+                        $0.message?.attributes.compactMap { $0 as? ReplyThreadMessageAttribute }.first
+                    }
+                    |> map {
+                        Int($0?.count ?? 0)
+                    }
+                    |> deliverOnMainQueue
+                
+                answersCountDisposable.set(answersCount.start(next: { [weak self] count in
+                    self?.rootRepliesCount = count
+                }))
+            default:
+                answersCountDisposable.set(nil)
+            }
+            
         }
     }
     
@@ -347,12 +371,15 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
     
     var inputActivities:(PeerId, [(Peer, PeerInputActivity)])? {
         didSet {
-            if let inputActivities = inputActivities, self.chatInteraction.mode == .history  {
+            if let inputActivities = inputActivities, self.chatInteraction.mode != .scheduled && self.chatInteraction.mode != .pinned  {
                 activities.update(with: inputActivities, for: max(frame.width - 80, 160), theme:theme.activity(key: 4, foregroundColor: theme.colors.accent, backgroundColor: theme.colors.background), layout: { [weak self] show in
                     guard let `self` = self else { return }
                     self.needsLayout = true
                     self.hiddenStatus = show
                     self.setNeedsDisplay()
+                    
+                    
+                    
                     if let view = self.activities.view {
                         if self.animates {
                             if show {
@@ -430,15 +457,13 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                     strongSelf.isSingleLayout = true
                     strongSelf.badgeNode.view?.isHidden = false
                     strongSelf.closeButton.isHidden = false
-                    strongSelf.searchButton.isHidden = false
-                    strongSelf.avatarControl.isHidden = false
                 default:
-                    strongSelf.isSingleLayout = strongSelf.controller?.className != "Telegram.ChatController" //( is ChatAdditionController) || (strongSelf.controller is ChatSwitchInlineController) || (strongSelf.controller is ChatScheduleController)
+                    strongSelf.isSingleLayout = strongSelf.controller?.className != "Telegram.ChatController" 
                     strongSelf.badgeNode.view?.isHidden = true
-                    strongSelf.closeButton.isHidden = strongSelf.controller?.className == "Telegram.ChatController"
-                    strongSelf.searchButton.isHidden = strongSelf.controller is ChatScheduleController
-                    strongSelf.avatarControl.isHidden = strongSelf.controller is ChatScheduleController
+                    strongSelf.closeButton.isHidden = strongSelf.controller?.className == "Telegram.ChatController" && strongSelf.chatInteraction.mode.threadId == nil
                 }
+                strongSelf.avatarControl.isHidden = strongSelf.controller is ChatScheduleController || strongSelf.chatInteraction.mode.threadId != nil || strongSelf.chatInteraction.mode == .pinned
+
                 strongSelf.textInset = strongSelf.avatarControl.isHidden ? 24 : strongSelf.isSingleLayout ? 66 : 46
                 strongSelf.needsLayout = true
             }
@@ -462,6 +487,10 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         
         self.continuesAction = true
         
+    }
+    
+    func updateSearchButton(hidden: Bool, animated: Bool) {
+        (animated ? searchButton.animator() : searchButton).isHidden = hidden
     }
     
     
@@ -494,7 +523,7 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
     }
     
     private let videoAvatarDisposable = MetaDisposable()
-    
+    private let answersCountDisposable = MetaDisposable()
     
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
@@ -511,7 +540,7 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         let point = convert(event.locationInWindow, from: nil)
         
         
-        if NSPointInRect(point, avatarControl.frame), chatInteraction.mode != .scheduled, let peer = chatInteraction.presentation.mainPeer {
+        if NSPointInRect(point, avatarControl.frame), chatInteraction.mode == .history, let peer = chatInteraction.presentation.mainPeer {
            let signal = peerPhotos(account: chatInteraction.context.account, peerId: peer.id) |> deliverOnMainQueue
             videoAvatarDisposable.set(signal.start(next: { [weak self] photos in
                 self?.applyVideoAvatarIfNeeded(photos.first)
@@ -575,7 +604,7 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         let point = convert(event.locationInWindow, from: nil)
 
         
-        if NSPointInRect(point, avatarControl.frame), chatInteraction.mode != .scheduled, chatInteraction.peerId != chatInteraction.context.peerId {
+        if NSPointInRect(point, avatarControl.frame), chatInteraction.mode == .history, chatInteraction.peerId != chatInteraction.context.peerId {
             if let peer = chatInteraction.presentation.mainPeer, let large = peer.largeProfileImage {
                 showPhotosGallery(context: chatInteraction.context, peerId: peer.id, firstStableId: AnyHashable(large.resource.id.uniqueId), self, nil)
                 return
@@ -584,13 +613,17 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         
         if isSingleLayout {
             if point.x > 20 {
-                if chatInteraction.mode != .scheduled {
-                    if chatInteraction.peerId == chatInteraction.context.peerId {
+                if chatInteraction.mode == .history {
+                    if chatInteraction.peerId == repliesPeerId {
+                        
+                    } else if chatInteraction.peerId == chatInteraction.context.peerId {
                         chatInteraction.context.sharedContext.bindings.rootNavigation().push(PeerMediaController(context: chatInteraction.context, peerId: chatInteraction.peerId))
                     } else {
                         switch chatInteraction.chatLocation {
                         case let .peer(peerId):
                             chatInteraction.openInfo(peerId, false, nil, nil)
+                        case .replyThread:
+                            break
                         }
                     }
                 }
@@ -599,12 +632,16 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                 chatInteraction.context.sharedContext.bindings.rootNavigation().back()
             }
         } else {
-            if chatInteraction.peerId == chatInteraction.context.peerId {
+            if chatInteraction.peerId == repliesPeerId {
+                
+            } else if chatInteraction.peerId == chatInteraction.context.peerId {
                 chatInteraction.context.sharedContext.bindings.rootNavigation().push(PeerMediaController(context: chatInteraction.context, peerId: chatInteraction.peerId))
             } else {
                 switch chatInteraction.chatLocation {
                 case let .peer(peerId):
                     chatInteraction.openInfo(peerId, false, nil, nil)
+                case .replyThread:
+                    break
                 }
             }
         }
@@ -614,6 +651,7 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         disposable.dispose()
         fetchPeerAvatar.dispose()
         videoAvatarDisposable.dispose()
+        answersCountDisposable.dispose()
     }
     
     
@@ -629,7 +667,11 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
         avatarControl.centerY(x: additionInset)
         searchButton.centerY(x:frame.width - searchButton.frame.width)
         callButton.centerY(x: searchButton.isHidden ? frame.width - callButton.frame.width : searchButton.frame.minX - callButton.frame.width - 20)
-        activities.view?.setFrameOrigin(avatarControl.frame.maxX + 8, 25)
+        if !avatarControl.isHidden {
+            activities.view?.setFrameOrigin(avatarControl.frame.maxX + 8, 25)
+        } else {
+            activities.view?.setFrameOrigin(24, 25)
+        }
         badgeNode.view!.setFrameOrigin(6,4)
         
         closeButton.centerY()
@@ -682,7 +724,6 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
 
 
     func updateStatus(_ force:Bool = false) {
-        var shouldUpdateLayout = false
         if let peerView = self.postboxView as? PeerView {
             
             checkPhoto(peerViewMainPeer(peerView))
@@ -696,11 +737,18 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                 }
             case .scheduled:
                 callButton.isHidden = true
+            case .replyThread:
+                callButton.isHidden = true
+            case .pinned:
+                callButton.isHidden = true
             }
             
             
             if let peer = peerViewMainPeer(peerView) {
-                if peer.id == chatInteraction.context.peerId {
+                if peer.id == repliesPeerId {
+                    let icon = theme.icons.chat_replies_avatar
+                    avatarControl.setSignal(generateEmptyPhoto(avatarControl.frame.size, type: .icon(colors: theme.colors.peerColors(5), icon: icon, iconSize: icon.backingSize.aspectFitted(NSMakeSize(avatarControl.frame.size.width - 17, avatarControl.frame.size.height - 17)), cornerRadius: nil)) |> map {($0, false)})
+                } else if peer.id == chatInteraction.context.peerId {
                     let icon = theme.icons.searchSaved
                     avatarControl.setSignal(generateEmptyPhoto(avatarControl.frame.size, type: .icon(colors: theme.colors.peerColors(5), icon: icon, iconSize: icon.backingSize.aspectFitted(NSMakeSize(avatarControl.frame.size.width - 15, avatarControl.frame.size.height - 15)), cornerRadius: nil)) |> map {($0, false)})
                 } else {
@@ -710,7 +758,7 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
             
             if peerView.peers[peerView.peerId] is TelegramSecretChat {
                 titleImage = (theme.icons.chatSecretTitle, .left)
-            } else if let peer = peerViewMainPeer(peerView) {
+            } else if let peer = peerViewMainPeer(peerView), chatInteraction.mode == .history {
                 if peer.isVerified {
                     titleImage = (theme.icons.verifiedImage, .right)
                 } else if peer.isScam {
@@ -722,9 +770,19 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                 titleImage = nil
             }
             
+            updateTitle(force)
+        } 
+    }
+    
+    private func updateTitle(_ force: Bool = false) {
+        var shouldUpdateLayout = false
+        if let peerView = self.postboxView as? PeerView {
             var result = stringStatus(for: peerView, context: chatInteraction.context, theme: PeerStatusStringTheme(titleFont: .medium(.title)), onlineMemberCount: self.onlineMemberCount)
             
-            if chatInteraction.context.peerId == peerView.peerId  {
+            if chatInteraction.mode == .pinned {
+                result = result.withUpdatedTitle(L10n.chatTitlePinnedMessagesCountable(chatInteraction.presentation.pinnedMessageId?.totalCount ?? 0))
+                status = nil
+            } else if chatInteraction.context.peerId == peerView.peerId  {
                 if chatInteraction.mode == .scheduled {
                     result = result.withUpdatedTitle(L10n.chatTitleReminder)
                 } else {
@@ -732,12 +790,20 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                 }
             } else if chatInteraction.mode == .scheduled {
                 result = result.withUpdatedTitle(L10n.chatTitleScheduledMessages)
+            } else if case .replyThread(_, let mode) = chatInteraction.mode {
+                switch mode {
+                case .comments:
+                    result = result.withUpdatedTitle(L10n.chatTitleCommentsCountable(self.rootRepliesCount))
+                case .replies:
+                    result = result.withUpdatedTitle(L10n.chatTitleRepliesCountable(self.rootRepliesCount))
+                }
+                status = .initialize(string: result.title.string, color: theme.colors.grayText, font: .normal(12))
+                result = result.withUpdatedTitle(L10n.chatTitleDiscussion)
             }
-            
             
             if chatInteraction.context.peerId == peerView.peerId {
                 status = nil
-            } else if (status == nil || !status!.isEqual(to: result.status) || force) && chatInteraction.mode != .scheduled {
+            } else if (status == nil || !status!.isEqual(to: result.status) || force) && chatInteraction.mode != .scheduled && chatInteraction.mode.threadId == nil && chatInteraction.mode != .pinned {
                 status = result.status
                 shouldUpdateLayout = true
             }
@@ -746,14 +812,14 @@ class ChatTitleBarView: TitledBarView, InteractionContentViewProtocol {
                 text = result.title
                 shouldUpdateLayout = true
             }
-            
             if let presence = result.presence {
                 self.presenceManager?.reset(presence: presence, timeDifference: Int32(chatInteraction.context.timeDifference))
             }
-            if shouldUpdateLayout {
-                self.setNeedsDisplay()
-            }
-        } 
+        }
+        
+        if shouldUpdateLayout {
+            setNeedsDisplay()
+        }
     }
     
     

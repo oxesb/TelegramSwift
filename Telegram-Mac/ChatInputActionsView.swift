@@ -288,7 +288,7 @@ class ChatInputActionsView: View, Notifable {
                 }
               
                 if let peer = value.peer {
-                    muteChannelMessages.isHidden = !peer.isChannel || !peer.canSendMessage || !value.effectiveInput.inputText.isEmpty || value.interfaceState.editState != nil
+                    muteChannelMessages.isHidden = !peer.isChannel || !peer.canSendMessage(value.chatMode.isThreadMode) || !value.effectiveInput.inputText.isEmpty || value.interfaceState.editState != nil
                 }
                 
                 if !muteChannelMessages.isHidden {
@@ -491,6 +491,10 @@ class ChatInputActionsView: View, Notifable {
                         }))
                     }
                 case .scheduled:
+                    break
+                case .replyThread:
+                    break
+                case .pinned:
                     break
                 }
                 

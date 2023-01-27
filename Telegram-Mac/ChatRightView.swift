@@ -18,7 +18,6 @@ class ChatRightView: View {
     private var stateView:ImageView?
     private var readImageView:ImageView?
     private var sendingView:SendingClockProgress?
-    private var channelsViewsImage:ImageView?
 
     private weak var item:ChatRowItem?
     
@@ -62,7 +61,7 @@ class ChatRightView: View {
                         self.addSubview(stateView!)
                     }
                     
-                    if item.isRead && !item.isFailed && !item.isStorage {
+                    if item.isRead && !item.isFailed && !item.hasSource {
                         if readImageView == nil {
                             readImageView = ImageView()
                             addSubview(readImageView!)
@@ -159,11 +158,14 @@ class ChatRightView: View {
             if let likes = item.likes {
                 viewsOffset += likes.0.size.width + 18
                 let icon = item.presentation.chat.likedIcon(item)
-                
                 ctx.draw(icon, in: NSMakeRect(likes.0.size.width + 2 + item.stateOverlayAdditionCorner, item.isBubbled ? (item.isStateOverlayLayout ? 1 : 0) : 0, icon.backingSize.width, icon.backingSize.height))
-                
                 likes.1.draw(NSMakeRect(item.stateOverlayAdditionCorner, item.isBubbled ? (item.isStateOverlayLayout ? 2 : 1) : 0, likes.0.size.width, likes.0.size.height), in: ctx, backingScaleFactor: backingScaleFactor, backgroundColor: backgroundColor)
 
+            }
+            if item.isPinned {
+                let icon = item.presentation.chat.messagePinnedIcon(item)
+                ctx.draw(icon, in: NSMakeRect(viewsOffset + (item.isStateOverlayLayout ? 4 : 0), item.isBubbled ? (item.isStateOverlayLayout ? 3 : 2) : 2, icon.backingSize.width, icon.backingSize.height))
+                viewsOffset += icon.backingSize.width + (item.isStateOverlayLayout ? 4 : 4)
             }
             
             if let channelViews = item.channelViews {
@@ -175,8 +177,14 @@ class ChatRightView: View {
                 
                 if let postAuthor = item.postAuthor {
                     postAuthor.1.draw(NSMakeRect(icon.backingSize.width + channelViews.0.size.width + 8 + item.stateOverlayAdditionCorner + viewsOffset, item.isBubbled ? (item.isStateOverlayLayout ? 2 : 1) : 0, postAuthor.0.size.width, postAuthor.0.size.height), in: ctx, backingScaleFactor: backingScaleFactor, backgroundColor: backgroundColor)
+                    viewsOffset += postAuthor.0.size.width + 8
                 }
-                
+                viewsOffset += channelViews.0.size.width + 22
+            }
+            if let replyCount = item.replyCount {
+                let icon = item.presentation.chat.repliesCountIcon(item)
+                ctx.draw(icon, in: NSMakeRect(replyCount.0.size.width + 2 + item.stateOverlayAdditionCorner + viewsOffset, item.isBubbled ? (item.isStateOverlayLayout ? 3 : 2) : 2, icon.backingSize.width, icon.backingSize.height))
+                replyCount.1.draw(NSMakeRect(item.stateOverlayAdditionCorner + viewsOffset, item.isBubbled ? (item.isStateOverlayLayout ? 2 : 1) : 0, replyCount.0.size.width, replyCount.0.size.height), in: ctx, backingScaleFactor: backingScaleFactor, backgroundColor: backgroundColor)
             }
             
         }

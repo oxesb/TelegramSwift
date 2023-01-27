@@ -197,7 +197,7 @@ class ChatMessageItem: ChatRowItem {
                 
                 messageAttr = ChatMessageItem.applyMessageEntities(with: message.attributes, for: message.text, context: context, fontSize: theme.fontSize, openInfo:openInfo, botCommand:chatInteraction.sendPlainText, hashtag: chatInteraction.modalSearch, applyProxy: chatInteraction.applyProxy, textColor: theme.chat.textColor(isIncoming, entry.renderType == .bubble), linkColor: theme.chat.linkColor(isIncoming, entry.renderType == .bubble), monospacedPre: theme.chat.monospacedPreColor(isIncoming, entry.renderType == .bubble), monospacedCode: theme.chat.monospacedCodeColor(isIncoming, entry.renderType == .bubble), mediaDuration: mediaDuration, timecode: { timecode in
                     openSpecificTimecodeFromReply?(timecode)
-                }, openBank: chatInteraction.openBank).mutableCopy() as! NSMutableAttributedString
+                }).mutableCopy() as! NSMutableAttributedString
 
                 messageAttr.fixUndefinedEmojies()
                 
@@ -257,7 +257,7 @@ class ChatMessageItem: ChatRowItem {
             
             if let peer = message.peers[message.id.peerId] {
                 if peer is TelegramSecretChat {
-                    copy.detectLinks(type: [.Links, .Hashtags, .Mentions], context: context, color: theme.chat.linkColor(isIncoming, entry.renderType == .bubble))
+                    copy.detectLinks(type: [.Links, .Mentions], context: context, color: theme.chat.linkColor(isIncoming, entry.renderType == .bubble), openInfo: chatInteraction.openInfo)
                 }
             }
 
@@ -402,8 +402,8 @@ class ChatMessageItem: ChatRowItem {
                         } else if let groupInfo = message.groupInfo {
                             let id = ChatHistoryEntryId.groupedPhotos(groupInfo: groupInfo)
                             if let item = self?.table?.item(stableId: id) as? ChatGroupedItem {
-                                item.parameters?.set_timeCodeInitializer(timecode)
-                                item.parameters?.showMedia(message)
+                                item.parameters.first?.set_timeCodeInitializer(timecode)
+                                item.parameters.first?.showMedia(message)
                             }
                         } else if let item = self?.table?.item(stableId: id) as? ChatMessageItem {
                             if let content = item.webpageLayout?.content {
@@ -455,13 +455,16 @@ class ChatMessageItem: ChatRowItem {
                                 let pb = NSPasteboard.general
                                 pb.clearContents()
                                 pb.declareTypes([.string], owner: strongSelf)
-                                var effectiveRange = strongSelf.textLayout.selectedRange.range
-                                let selectedText = strongSelf.textLayout.attributedString.attributedSubstring(from: effectiveRange)
-                                let attribute = strongSelf.textLayout.attributedString.attribute(NSAttributedString.Key.link, at: strongSelf.textLayout.selectedRange.range.location, effectiveRange: &effectiveRange)
-                                if let attribute = attribute as? inAppLink {
-                                    pb.setString(attribute.link.isEmpty ? selectedText.string : attribute.link, forType: .string)
-                                } else {
-                                    pb.setString(selectedText.string, forType: .string)
+                                let layout = strongSelf.textLayout
+                                var effectiveRange = layout.selectedRange.range
+                                if layout.attributedString.range.intersection(effectiveRange) != nil {
+                                    let selectedText = layout.attributedString.attributedSubstring(from: effectiveRange)
+                                    let attribute = layout.attributedString.attribute(NSAttributedString.Key.link, at: layout.selectedRange.range.location, effectiveRange: &effectiveRange)
+                                    if let attribute = attribute as? inAppLink {
+                                        pb.setString(attribute.link.isEmpty ? selectedText.string : attribute.link, forType: .string)
+                                    } else {
+                                        pb.setString(selectedText.string, forType: .string)
+                                    }
                                 }
                             }
                         }))
@@ -515,6 +518,10 @@ class ChatMessageItem: ChatRowItem {
                     }
                 }
                 return .complete()
+            }
+            
+            interactions.hoverOnLink = { value in
+                
             }
             
             textLayout.interactions = interactions

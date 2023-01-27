@@ -143,9 +143,7 @@ private final class ApplicationContainerView: View {
 
 final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
     
-    
-    private var mediaKeyTap:SPMediaKeyTap?
-    
+        
     var rootView: View {
         return view
     }
@@ -188,7 +186,7 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
     
     private var launchAction: ApplicationContextLaunchAction?
     
-    init(window: Window, context: AccountContext, launchSettings: LaunchSettings) {
+    init(window: Window, context: AccountContext, launchSettings: LaunchSettings, callSession: PCallSession?) {
         
         self.context = context
         emptyController = EmptyChatViewController(context)
@@ -276,6 +274,8 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
             self?.view.splitView.needFullsize()
         }, displayUpgradeProgress: { progress in
                 
+        }, callSession: { [weak self] in
+            return (self?.rightController.callHeader?.view as? CallNavigationHeaderView)?.session
         })
         
         
@@ -583,14 +583,14 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
         
         let foldersSemaphore = DispatchSemaphore(value: 0)
         var folders: ChatListFolders = ChatListFolders(list: [], sidebar: false)
-        
+            
         _ = (chatListFilterPreferences(postbox: context.account.postbox) |> take(1)).start(next: { value in
             folders = value
             foldersSemaphore.signal()
         })
         foldersSemaphore.wait()
         
-        self.updateLeftSidebar(with: folders, animated: false)
+        self.updateLeftSidebar(with: folders, layout: context.sharedContext.layout, animated: false)
         
         
         self.view.splitView.layout()
@@ -605,7 +605,6 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
                 _ready.set(leftController.settings.ready.get())
                 leftController.tabController.select(index: leftController.settingsIndex)
             case let .chat(peerId, necessary):
-                
                 let peerSemaphore = DispatchSemaphore(value: 0)
                 var peer: Peer?
                 _ = context.account.postbox.transaction { transaction in
@@ -637,6 +636,33 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
                     _ready.set(leftController.chatList.ready.get())
                     self.leftController.tabController.select(index: self.leftController.chatIndex)
                 }
+            case let .thread(threadId, fromId, _):
+                self.leftController.tabController.select(index: self.leftController.chatIndex)
+                self._ready.set(self.leftController.chatList.ready.get())
+                
+                let signal:Signal<ReplyThreadInfo, FetchChannelReplyThreadMessageError> = fetchAndPreloadReplyThreadInfo(context: context, subject: .channelPost(threadId))
+                
+                _ = showModalProgress(signal: signal |> take(1), for: context.window).start(next: { [weak context] result in
+                    guard let context = context else {
+                        return
+                    }
+                    let chatLocation: ChatLocation = .replyThread(result.message)
+                    
+                    let updatedMode: ReplyThreadMode
+                    if result.isChannelPost {
+                        updatedMode = .comments(origin: fromId)
+                    } else {
+                        updatedMode = .replies(origin: fromId)
+                    }
+                    
+                    let controller = ChatController.init(context: context, chatLocation: chatLocation, mode: .replyThread(data: result.message, mode: updatedMode), messageId: fromId, initialAction: nil, chatLocationContextHolder: result.contextHolder)
+                    
+                    context.sharedContext.bindings.rootNavigation().push(controller)
+                    
+                }, error: { error in
+                    
+                })
+                
             }
         } else {
            // self._ready.set(.single(true))
@@ -645,30 +671,13 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
           //  _ready.set(leftController.ready.get())
         }
         
-        
-        let callSessionSemaphore = DispatchSemaphore(value: 0)
-        var callSession: PCallSession?
-        _ = _callSession().start(next: { _session in
-            callSession = _session
-            callSessionSemaphore.signal()
-        })
-        callSessionSemaphore.wait()
-        
-        
         if let session = callSession {
-            _ = (session.state |> take(1)).start(next: { [weak session] state in
-                if case .active = state.state, let session = session {
-                    context.sharedContext.showCallHeader(with: session)
-                }
-            })
+            context.sharedContext.showCallHeader(with: session)
         }
         
-        self.updateFoldersDisposable.set((chatListFilterPreferences(postbox: context.account.postbox) |> deliverOnMainQueue).start(next: { [weak self] value in
-            self?.updateLeftSidebar(with: value, animated: true)
+        self.updateFoldersDisposable.set(combineLatest(queue: .mainQueue(), chatListFilterPreferences(postbox: context.account.postbox), context.sharedContext.layoutHandler.get()).start(next: { [weak self] value, layout in
+            self?.updateLeftSidebar(with: value, layout: layout, animated: true)
         }))
-        
-        
-        
         
         
         if let controller = globalAudio {
@@ -681,16 +690,17 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
     }
     
     private var folders: ChatListFolders?
+    private var previousLayout: SplitViewState?
     private let foldersReadyDisposable = MetaDisposable()
-    private func updateLeftSidebar(with folders: ChatListFolders, animated: Bool) -> Void {
+    private func updateLeftSidebar(with folders: ChatListFolders, layout: SplitViewState, animated: Bool) -> Void {
         
-        let currentSidebar = !folders.list.isEmpty && folders.sidebar
-        let previousSidebar = self.folders == nil ? nil : !self.folders!.list.isEmpty && self.folders!.sidebar
+        let currentSidebar = !folders.list.isEmpty && (folders.sidebar || layout == .minimisize)
+        let previousSidebar = self.folders == nil ? nil : !self.folders!.list.isEmpty && (self.folders!.sidebar || self.previousLayout == SplitViewState.minimisize)
 
         let readySignal: Signal<Bool, NoError>
         
         if currentSidebar != previousSidebar {
-            if folders.list.isEmpty || !folders.sidebar {
+            if !currentSidebar {
                 leftSidebarController?.removeFromSuperview()
                 leftSidebarController = nil
                 readySignal = .single(true)
@@ -727,6 +737,7 @@ final class AuthorizedApplicationContext: NSObject, SplitViewDelegate {
             
         }
         self.folders = folders
+        self.previousLayout = layout
     }
     
     

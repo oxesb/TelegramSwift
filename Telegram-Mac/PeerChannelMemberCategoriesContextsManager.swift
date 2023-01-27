@@ -15,6 +15,7 @@ import SwiftSignalKit
 enum PeerChannelMemberContextKey: Equatable, Hashable {
     case recent
     case recentSearch(String)
+    case mentions(threadId: MessageId?, query: String?)
     case admins(String?)
     case contacts(String?)
     case bots(String?)
@@ -40,7 +41,8 @@ private final class PeerChannelMembersOnlineContext {
 private final class PeerChannelMemberCategoriesContextsManagerImpl {
     fileprivate var contexts: [PeerId: PeerChannelMemberCategoriesContext] = [:]
     fileprivate var onlineContexts: [PeerId: PeerChannelMembersOnlineContext] = [:]
-    
+    fileprivate var replyThreadHistoryContexts: [MessageId: ReplyThreadHistoryContext] = [:]
+
 
     func getContext(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, key: PeerChannelMemberContextKey, requestUpdate: Bool, updated: @escaping (ChannelMemberListState) -> Void) -> (Disposable, PeerChannelMemberCategoryControl) {
         if let current = self.contexts[peerId] {
@@ -193,6 +195,11 @@ final class PeerChannelMemberCategoriesContextsManager {
                 }
             }
         }
+    }
+    
+    func mentions(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadMessageId: MessageId?, searchQuery: String? = nil, requestUpdate: Bool = true, updated: @escaping (ChannelMemberListState) -> Void) -> (Disposable, PeerChannelMemberCategoryControl?) {
+        let key: PeerChannelMemberContextKey = .mentions(threadId: threadMessageId, query: searchQuery)
+        return self.getContext(postbox: postbox, network: network, accountPeerId: accountPeerId, peerId: peerId, key: key, requestUpdate: requestUpdate, updated: updated)
     }
     
     func recent(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, searchQuery: String? = nil, requestUpdate: Bool = true, updated: @escaping (ChannelMemberListState) -> Void) -> (Disposable, PeerChannelMemberCategoryControl?) {
@@ -387,23 +394,11 @@ final class PeerChannelMemberCategoriesContextsManager {
             |> mapToSignal { _ -> Signal<Void, AddChannelMemberError> in
                 return .complete()
         }
-        
-        /*return addChannelMembers(account: account, peerId: peerId, memberIds: memberIds)
-         |> deliverOnMainQueue
-         |> beforeNext { [weak self] result in
-         if let strongSelf = self {
-         strongSelf.impl.with { impl in
-         for (contextPeerId, context) in impl.contexts {
-         if peerId == contextPeerId {
-         context.reset(.recent)
-         }
-         }
-         }
-         }
-         }
-         |> mapToSignal { _ -> Signal<Void, AddChannelMemberError> in
-         return .single(Void())
-         }*/
     }
+    
+    func replyThread(account: Account, messageId: MessageId) -> Signal<MessageHistoryViewExternalInput, NoError> {
+        return .complete()
+    }
+
 
 }

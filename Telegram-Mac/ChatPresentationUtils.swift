@@ -378,6 +378,9 @@ final class TelegramChatColors {
     func pollSelected(_ incoming: Bool, _ bubbled: Bool, icons: TelegramIconsTheme) -> CGImage {
         return bubbled ? incoming ? icons.poll_selected_incoming : icons.poll_selected_outgoing : icons.poll_selected
     }
+    func pollSelection(_ incoming: Bool, _ bubbled: Bool, icons: TelegramIconsTheme) -> CGImage {
+        return bubbled ? incoming ? icons.poll_selection_incoming : icons.poll_selection_outgoing : icons.poll_selection
+    }
     func pollSelectedCorrect(_ incoming: Bool, _ bubbled: Bool, icons: TelegramIconsTheme) -> CGImage {
         return bubbled ? incoming ? icons.poll_selected_correct_incoming : icons.poll_selected_correct_outgoing : icons.poll_selected_correct
     }
@@ -391,6 +394,22 @@ final class TelegramChatColors {
     
     func channelViewsIcon(_ item: ChatRowItem) -> CGImage {
         return item.isStateOverlayLayout ? !item.isInteractiveMedia ? item.presentation.chatChannelViewsOverlayServiceBubble : item.presentation.icons.chatChannelViewsOverlayBubble : item.hasBubble ? item.isIncoming ? item.presentation.icons.chatChannelViewsInBubble_incoming : item.presentation.icons.chatChannelViewsInBubble_outgoing : item.presentation.icons.chatChannelViewsOutBubble
+    }
+    
+    func messagePinnedIcon(_ item: ChatRowItem) -> CGImage {
+        if item.isStateOverlayLayout {
+            if !item.isInteractiveMedia {
+                return item.presentation.chat_pinned_message_overlay_service_bubble
+            } else {
+                return item.presentation.icons.chat_pinned_message_overlay_bubble
+            }
+        } else {
+            return item.hasBubble ? item.isIncoming ? item.presentation.icons.chat_pinned_message_bubble_incoming : item.presentation.icons.chat_pinned_message_bubble_outgoing : item.presentation.icons.chat_pinned_message
+        }
+    }
+    
+    func repliesCountIcon(_ item: ChatRowItem) -> CGImage {
+        return item.isStateOverlayLayout ? !item.isInteractiveMedia ? item.presentation.chat_reply_count_overlay_service_bubble : item.presentation.icons.chat_reply_count_overlay : item.hasBubble ? item.isIncoming ? item.presentation.icons.chat_reply_count_bubble_incoming : item.presentation.icons.chat_reply_count_bubble_outgoing : item.presentation.icons.chat_reply_count
     }
     func likedIcon(_ item: ChatRowItem) -> CGImage {
         if item.isLiked {

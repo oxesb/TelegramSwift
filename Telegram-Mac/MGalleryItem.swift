@@ -377,7 +377,7 @@ class MGalleryItem: NSObject, Comparable, Identifiable {
     }
     
     var minMagnify:CGFloat {
-        return 1.0
+        return 0.25
     }
     
     var maxMagnify:CGFloat {
@@ -423,7 +423,7 @@ class MGalleryItem: NSObject, Comparable, Identifiable {
                 if toChat {
                     if peerId == (controller as? ChatController)?.chatInteraction.peerId {
                         if let postId = postId {
-                            (controller as? ChatController)?.chatInteraction.focusMessageId(nil, postId, TableScrollState.center(id: 0, innerId: nil, animated: true, focus: .init(focus: true), inset: 0))
+                            (controller as? ChatController)?.chatInteraction.focusMessageId(nil, postId, TableScrollState.CenterEmpty)
                         }
                     } else {
                         navigation.push(ChatAdditionController(context: context, chatLocation: .peer(peerId), messageId: postId, initialAction: action))

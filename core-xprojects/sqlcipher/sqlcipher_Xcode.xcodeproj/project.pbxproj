@@ -309,6 +309,7 @@
 		A701F906236B2EF8002ABF81 /* DebugAppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -327,6 +328,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -343,6 +345,7 @@
 		A701F907236B2EF8002ABF81 /* ReleaseAppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -360,6 +363,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -431,6 +435,7 @@
 		A701F91B236B2F84002ABF81 /* ReleaseHockeyapp */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -448,6 +453,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -519,6 +525,7 @@
 		A701F91D236B2F89002ABF81 /* DebugHockeyapp */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -536,6 +543,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -607,6 +615,7 @@
 		A701F91F236B2F90002ABF81 /* HockeyappMacAlpha */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -624,6 +633,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -702,6 +712,7 @@
 		A7F282DB238EAB4300742C20 /* Github */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -720,6 +731,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",

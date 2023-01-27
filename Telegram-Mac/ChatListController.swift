@@ -378,7 +378,7 @@ class ChatListController : PeersListController {
                                 foundAllPeers = false
                                 break
                             }
-                            cachedResult[chatPeerId] = cachedChatResult
+                            cachedResult[chatPeerId.peerId] = cachedChatResult
                         }
                     }
                 }
@@ -398,7 +398,7 @@ class ChatListController : PeersListController {
                                 }
                             }
                             
-                            result[chatPeerId] = chatResult
+                            result[chatPeerId.peerId] = chatResult
                         }
                         let _ = previousPeerCache.swap(peerCache)
                         return result
@@ -518,6 +518,7 @@ class ChatListController : PeersListController {
             }
         }
         
+        let previousLayout: Atomic<SplitViewState> = Atomic(value: context.sharedContext.layout)
 
         let list:Signal<TableUpdateTransition,NoError> = combineLatest(queue: prepareQueue, chatHistoryView, appearanceSignal, statePromise.get(), context.chatUndoManager.allStatuses(), hiddenItemsState.get(), appNotificationSettings(accountManager: context.sharedContext.accountManager), chatListFilterItems(account: context.account, accountManager: context.sharedContext.accountManager), foldersTopBarUpdate) |> mapToQueue { value, appearance, state, undoStatuses, hiddenItems, inAppSettings, filtersCounter, filterData -> Signal<TableUpdateTransition, NoError> in
                     
@@ -638,6 +639,13 @@ class ChatListController : PeersListController {
                 scroll = .up(true)
             }
             
+            let layoutUpdated = previousLayout.swap(context.sharedContext.layout) != context.sharedContext.layout
+                        
+            if layoutUpdated {
+                scroll = .up(false)
+                animated = false
+            }
+            
             return prepareEntries(from: prev, to: entries, adIndex: nil, context: context, initialSize: initialSize.with { $0 }, animated: animated, scrollState: scroll, groupId: groupId, setupFilter: setupFilter, openFilterSettings: openFilterSettings, tabsMenuItems: { filter in
                 return filterContextMenuItems(filter, context: context)
             })
@@ -739,7 +747,7 @@ class ChatListController : PeersListController {
                 }
             }))
         default:
-            filterDisposable.set(filterView.start(next: { [weak self] filters in
+            filterDisposable.set(combineLatest(filterView, context.sharedContext.layoutHandler.get()).start(next: { [weak self] filters, layout in
                 self?.updateFilter( { current in
                     var current = current
                     if let filter = current.filter {
@@ -750,7 +758,7 @@ class ChatListController : PeersListController {
                         }
                     }
                     
-                    current = current.withUpdatedTabs(filters.list).withUpdatedSidebar(filters.sidebar)
+                    current = current.withUpdatedTabs(filters.list).withUpdatedSidebar(filters.sidebar || layout == .minimisize)
                     return current
                 } )
             }))
@@ -1476,13 +1484,13 @@ class ChatListController : PeersListController {
         if let item = item as? ChatListRowItem {
             if !isNew, let controller = navigation.controller as? ChatController {
                 switch controller.mode {
-                case .history:
+                case .history, .replyThread:
                     if let modalAction = navigation.modalAction {
                         navigation.controller.invokeNavigation(action: modalAction)
                     }
                     controller.clearReplyStack()
                     controller.scrollup(force: true)
-                case .scheduled:
+                case .scheduled, .pinned:
                     navigation.back()
                 }
                 

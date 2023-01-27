@@ -117,8 +117,8 @@ final class OngoingCallVideoCapturer {
     public func enableScreenCapture() {
         self.impl.switchVideoInput("screen_capture")
     }
-    public func disableScreenCapture() {
-        self.impl.switchVideoInput("")
+    public func switchVideoInput(_ deviceId: String) {
+        self.impl.switchVideoInput(deviceId)
     }
 }
 
@@ -358,6 +358,8 @@ private protocol OngoingCallThreadLocalContextProtocol: class {
     func nativeDebugInfo() -> String
     func nativeVersion() -> String
     func nativeGetDerivedState() -> Data
+    func nativeSwitchAudioOutput(_ deviceId: String)
+    func nativeSwitchAudioInput(_ deviceId: String)
 }
 
 
@@ -370,6 +372,8 @@ private final class OngoingCallThreadLocalContextHolder {
 }
 
 extension OngoingCallThreadLocalContext: OngoingCallThreadLocalContextProtocol {
+    
+    
     
     
     func nativeSetNetworkType(_ type: NetworkType) {
@@ -389,7 +393,12 @@ extension OngoingCallThreadLocalContext: OngoingCallThreadLocalContextProtocol {
     
     func nativeRequestVideo(_ capturer: OngoingCallVideoCapturer) {
     }
-    
+    func nativeSwitchAudioOutput(_ deviceId: String) {
+        
+    }
+    func nativeSwitchAudioInput(_ deviceId: String) {
+        
+    }
     func nativeAcceptVideo(_ capturer: OngoingCallVideoCapturer) {
     }
     func nativeSetRequestedVideoAspect(_ aspect: Float) {
@@ -403,6 +412,10 @@ extension OngoingCallThreadLocalContext: OngoingCallThreadLocalContextProtocol {
     }
     
     func nativeSwitchVideoCamera() {
+    }
+    
+    func nativeswitchAudioOutput() {
+        
     }
     
     func nativeDebugInfo() -> String {
@@ -439,6 +452,12 @@ extension OngoingCallThreadLocalContextWebrtc: OngoingCallThreadLocalContextProt
         self.setIsLowBatteryLevel(value)
     }
     
+    func nativeSwitchAudioOutput(_ deviceId: String) {
+        self.switchAudioOutput(deviceId)
+    }
+    func nativeSwitchAudioInput(_ deviceId: String) {
+        self.switchAudioInput(deviceId)
+    }
     func nativeRequestVideo(_ capturer: OngoingCallVideoCapturer) {
         self.requestVideo(capturer.impl)
     }
@@ -582,7 +601,7 @@ final class OngoingCallContext {
     }
 
     
-    init(account: Account, callSessionManager: CallSessionManager, internalId: CallSessionInternalId, proxyServer: ProxyServerSettings?, initialNetworkType: NetworkType, updatedNetworkType: Signal<NetworkType, NoError>, serializedData: String?, dataSaving: VoiceCallDataSaving, derivedState: VoipDerivedState, key: Data, isOutgoing: Bool, video: OngoingCallVideoCapturer?, connections: CallSessionConnectionSet, maxLayer: Int32, version: String, allowP2P: Bool, enableTCP: Bool, enableStunMarking: Bool, logName: String, preferredVideoCodec: String?) {
+    init(account: Account, callSessionManager: CallSessionManager, internalId: CallSessionInternalId, proxyServer: ProxyServerSettings?, initialNetworkType: NetworkType, updatedNetworkType: Signal<NetworkType, NoError>, serializedData: String?, dataSaving: VoiceCallDataSaving, derivedState: VoipDerivedState, key: Data, isOutgoing: Bool, video: OngoingCallVideoCapturer?, connections: CallSessionConnectionSet, maxLayer: Int32, version: String, allowP2P: Bool, enableTCP: Bool, enableStunMarking: Bool, logName: String, preferredVideoCodec: String?, audioInputDeviceId: String?) {
         let _ = setupLogs
         OngoingCallThreadLocalContext.applyServerConfig(serializedData)
         OngoingCallThreadLocalContextWebrtc.applyServerConfig(serializedData)
@@ -634,7 +653,7 @@ final class OngoingCallContext {
                 
                 let context = OngoingCallThreadLocalContextWebrtc(version: version, queue: OngoingCallThreadLocalContextQueueImpl(queue: queue), proxy: voipProxyServer, networkType: ongoingNetworkTypeForTypeWebrtc(initialNetworkType), dataSaving: ongoingDataSavingForTypeWebrtc(dataSaving), derivedState: derivedState.data, key: key, isOutgoing: isOutgoing, connections: filteredConnections, maxLayer: maxLayer, allowP2P: allowP2P, allowTCP: enableTCP, enableStunMarking: enableStunMarking, logPath: tempLogPath, statsLogPath: tempStatsLogPath, sendSignalingData: { [weak callSessionManager] data in
                     callSessionManager?.sendSignalingData(internalId: internalId, data: data)
-                    }, videoCapturer: video?.impl, preferredVideoCodec: preferredVideoCodec)
+                }, videoCapturer: video?.impl, preferredVideoCodec: preferredVideoCodec, audioInputDeviceId: audioInputDeviceId ?? "")
                 
                 
                 self.contextRef = Unmanaged.passRetained(OngoingCallThreadLocalContextHolder(context))
@@ -765,13 +784,31 @@ final class OngoingCallContext {
         }
     }
     
+    private func withContextThenDeallocate(_ f: @escaping (OngoingCallThreadLocalContextProtocol) -> Void) {
+        self.queue.async {
+            if let contextRef = self.contextRef {
+                let context = contextRef.takeUnretainedValue()
+                f(context.context)
+                
+                self.contextRef?.release()
+                self.contextRef = nil
+            }
+        }
+    }
+
+    
     func stop(callId: CallId? = nil, sendDebugLogs: Bool = false, debugLogValue: Promise<String?>) {
         let account = self.account
         let logPath = self.logPath
+        var statsLogPath = ""
+        if !logPath.isEmpty {
+            statsLogPath = logPath + ".json"
+        }
+        let tempLogPath = self.tempLogFile.path
+        let tempStatsLogPath = self.tempStatsLogFile.path
         
-        self.withContext { context in
+        self.withContextThenDeallocate { context in
             context.nativeStop { debugLog, bytesSentWifi, bytesReceivedWifi, bytesSentMobile, bytesReceivedMobile in
-                debugLogValue.set(.single(debugLog))
                 let delta = NetworkUsageStatsConnectionsEntry(
                     cellular: NetworkUsageStatsDirectionsEntry(
                         incoming: bytesReceivedMobile,
@@ -781,17 +818,22 @@ final class OngoingCallContext {
                         outgoing: bytesSentWifi))
                 updateAccountNetworkUsageStats(account: self.account, category: .call, delta: delta)
                 
-                if !logPath.isEmpty, let debugLog = debugLog {
+                if !logPath.isEmpty {
                     let logsPath = callLogsPath(account: account)
                     let _ = try? FileManager.default.createDirectory(atPath: logsPath, withIntermediateDirectories: true, attributes: nil)
-                    if let data = debugLog.data(using: .utf8) {
-                        let _ = try? data.write(to: URL(fileURLWithPath: logPath))
-                    }
+                    let _ = try? FileManager.default.moveItem(atPath: tempLogPath, toPath: logPath)
                 }
                 
-                if let callId = callId, let debugLog = debugLog {
+                if !statsLogPath.isEmpty {
+                    let logsPath = callLogsPath(account: account)
+                    let _ = try? FileManager.default.createDirectory(atPath: logsPath, withIntermediateDirectories: true, attributes: nil)
+                    let _ = try? FileManager.default.moveItem(atPath: tempStatsLogPath, toPath: statsLogPath)
+                }
+                
+                if let callId = callId, !statsLogPath.isEmpty, let data = try? Data(contentsOf: URL(fileURLWithPath: statsLogPath)), let dataString = String(data: data, encoding: .utf8) {
+                    debugLogValue.set(.single(dataString))
                     if sendDebugLogs {
-                        let _ = saveCallDebugLog(network: self.account.network, callId: callId, log: debugLog).start()
+                        let _ = saveCallDebugLog(network: self.account.network, callId: callId, log: dataString).start()
                     }
                 }
             }
@@ -800,6 +842,7 @@ final class OngoingCallContext {
                 return VoipDerivedState(data: derivedState)
             }).start()
         }
+
     }
     
     func setIsMuted(_ value: Bool) {
@@ -832,6 +875,16 @@ final class OngoingCallContext {
         }
     }
     
+    public func switchAudioOutput(_ deviceId: String) {
+        self.withContext { context in
+            context.nativeSwitchAudioOutput(deviceId)
+        }
+    }
+    public func switchAudioInput(_ deviceId: String) {
+        self.withContext { context in
+            context.nativeSwitchAudioInput(deviceId)
+        }
+    }
     func debugInfo() -> Signal<(String, String), NoError> {
         let poll = Signal<(String, String), NoError> { subscriber in
             self.withContext { context in

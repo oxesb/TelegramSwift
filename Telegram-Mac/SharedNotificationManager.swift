@@ -13,6 +13,13 @@ import TelegramCore
 import SyncCore
 import TGUIKit
 
+func getNotificationMessageId(userInfo:[String: Any], for prefix: String) -> MessageId? {
+    if let msgId = userInfo["\(prefix).message.id"] as? Int32, let msgNamespace = userInfo["\(prefix).message.namespace"] as? Int32, let namespace = userInfo["\(prefix).peer.namespace"] as? Int32, let id = userInfo["\(prefix).peer.id"] as? Int32 {
+        return MessageId(peerId: PeerId(namespace: namespace, id: id), namespace: msgNamespace, id: msgId)
+    }
+    return nil
+}
+
 struct LockNotificationsData : Equatable {
     let screenLock:Bool
     let passcodeLock:Bool
@@ -45,9 +52,11 @@ struct LockNotificationsData : Equatable {
 
 final class SharedNotificationBindings {
     let navigateToChat:(Account, PeerId) -> Void
+    let navigateToThread:(Account, MessageId, MessageId) -> Void // threadId, fromId
     let updateCurrectController:()->Void
-    init(navigateToChat: @escaping(Account, PeerId) -> Void, updateCurrectController: @escaping()->Void) {
+    init(navigateToChat: @escaping(Account, PeerId) -> Void, navigateToThread: @escaping(Account, MessageId, MessageId) -> Void, updateCurrectController: @escaping()->Void) {
         self.navigateToChat = navigateToChat
+        self.navigateToThread = navigateToThread
         self.updateCurrectController = updateCurrectController
     }
 }
@@ -56,7 +65,14 @@ final class SharedNotificationBindings {
 final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelegate {
 
     private let screenLocked:Promise<LockNotificationsData> = Promise(LockNotificationsData())
-    private var _lockedValue:LockNotificationsData = LockNotificationsData()
+    private(set) var _lockedValue:LockNotificationsData = LockNotificationsData() {
+        didSet {
+            didUpdateLocked?(_lockedValue)
+        }
+    }
+    
+    var didUpdateLocked:((LockNotificationsData)->Void)? = nil
+    
     private let _passlock = Promise<Bool>()
 
     var passlocked: Signal<Bool, NoError> {
@@ -259,6 +275,9 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
                             peer = mainPeer
                         }
                     }
+                    if message.id.peerId == repliesPeerId {
+                        peer = message.chatPeer(account.peerId)
+                    }
                     if let peer = peer {
                         photos.append(peerAvatarImage(account: account, photo: .peer(peer, peer.smallProfileImage, peer.displayLetters, message), genCap: false) |> map { data in return (message.id, data.0)})
                     }
@@ -301,7 +320,11 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
                             if let peer = message.peers[message.id.peerId] {
                                 if peer.isSupergroup || peer.isGroup {
                                     title = peer.displayTitle
-                                    hasReplyButton = peer.canSendMessage
+                                    hasReplyButton = peer.canSendMessage(false)
+                                } else if message.id.peerId == repliesPeerId {
+                                    if let peerId = message.sourceReference?.messageId.peerId, let sourcePeer = message.peers[peerId] {
+                                        hasReplyButton = sourcePeer.canSendMessage(true)
+                                    }
                                 } else if peer.isChannel {
                                     hasReplyButton = false
                                 }
@@ -333,6 +356,9 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
                                     title = "📆 \(title)"
                                 }
                                 subText = nil
+                            }
+                            if message.id.peerId == repliesPeerId {
+                                subText = message.chatPeer(account.peerId)?.displayTitle
                             }
                             
                             
@@ -372,22 +398,28 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
                             
                             var dict: [String : Any] = [:]
                             
-                            
                             if message.wasScheduled {
                                 dict["wasScheduled"] = true
                             }
                             
-                            
-                            
-                            dict["message.id"] =  message.id.id
-                            dict["message.namespace"] =  message.id.namespace
-                            dict["peer.id"] =  message.id.peerId.id
-                            dict["peer.namespace"] =  message.id.peerId.namespace
-                            dict["groupId"] = groupId.rawValue
-                            
-                            if screenIsLocked {
-                                dict = [:]
+                            if let sourceReference = message.sourceReference, let threadId = message.replyAttribute?.threadMessageId, message.id.peerId == repliesPeerId {
+                                dict["source.message.id"] = sourceReference.messageId.id
+                                dict["source.message.namespace"] = sourceReference.messageId.namespace
+                                dict["source.peer.id"] = sourceReference.messageId.peerId.id
+                                dict["source.peer.namespace"] = sourceReference.messageId.peerId.namespace
+                                
+                                dict["thread.message.id"] = threadId.id
+                                dict["thread.message.namespace"] = threadId.namespace
+                                dict["thread.peer.id"] = threadId.peerId.id
+                                dict["thread.peer.namespace"] = threadId.peerId.namespace
                             }
+                            
+                            dict["reply.message.id"] =  message.id.id
+                            dict["reply.message.namespace"] =  message.id.namespace
+                            dict["reply.peer.id"] =  message.id.peerId.id
+                            dict["reply.peer.namespace"] =  message.id.peerId.namespace
+                            
+                            dict["groupId"] = groupId.rawValue
                             
                             dict["accountId"] = account.id.int64
                             dict["timestamp"] = Int32(Date().timeIntervalSince1970)
@@ -432,11 +464,9 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
     
     
     @objc func userNotificationCenter(_ center: NSUserNotificationCenter, didDismissAlert notification: NSUserNotification) {
-        if let userInfo = notification.userInfo, let msgId = userInfo["message.id"] as? Int32, let timestamp = userInfo["timestamp"] as? Int32, let msgNamespace = userInfo["message.namespace"] as? Int32, let namespace = userInfo["peer.namespace"] as? Int32, let id = userInfo["peer.id"] as? Int32, let accountId = userInfo["accountId"] as? Int64 {
+        if let userInfo = notification.userInfo, let timestamp = userInfo["timestamp"] as? Int32, let accountId = userInfo["accountId"] as? Int64, let messageId = getNotificationMessageId(userInfo: userInfo, for: "reply") {
             
             let accountId = AccountRecordId(rawValue: accountId)
-            
-            let messageId = MessageId(peerId: PeerId(namespace: namespace, id: id), namespace: msgNamespace, id: msgId)
             
             guard let account = activeAccounts.accounts.first(where: {$0.0 == accountId})?.1 else {
                 return
@@ -447,12 +477,10 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
     }
     
     func userNotificationCenter(_ center: NSUserNotificationCenter, didActivate notification: NSUserNotification) {
-        if let userInfo = notification.userInfo, let msgId = userInfo["message.id"] as? Int32, let msgNamespace = userInfo["message.namespace"] as? Int32, let namespace = userInfo["peer.namespace"] as? Int32, let id = userInfo["peer.id"] as? Int32, let accountId = userInfo["accountId"] as? Int64 {
+        if let userInfo = notification.userInfo, let messageId = getNotificationMessageId(userInfo: userInfo, for: "reply"), let accountId = userInfo["accountId"] as? Int64 {
             
             let accountId = AccountRecordId(rawValue: accountId)
             
-            let messageId = MessageId(peerId: PeerId(namespace: namespace, id: id), namespace: msgNamespace, id: msgId)
-                        
             guard let account = activeAccounts.accounts.first(where: {$0.0 == accountId})?.1 else {
                 return
             }
@@ -460,13 +488,32 @@ final class SharedNotificationManager : NSObject, NSUserNotificationCenterDelega
             closeAllModals()
             
             if notification.activationType == .replied, let text = notification.response?.string, !text.isEmpty {
-                var replyToMessageId:MessageId?
-                if messageId.peerId.namespace != Namespaces.Peer.CloudUser {
-                    replyToMessageId = messageId
+                
+                if let sourceMessageId = getNotificationMessageId(userInfo: userInfo, for: "source") {
+                    var replyToMessageId:MessageId?
+                    if sourceMessageId.peerId.namespace != Namespaces.Peer.CloudUser {
+                        replyToMessageId = sourceMessageId
+                    }
+                    _ = enqueueMessages(account: account, peerId: sourceMessageId.peerId, messages: [EnqueueMessage.message(text: text, attributes: [], mediaReference: nil, replyToMessageId: replyToMessageId, localGroupingKey: nil)]).start()
+
+                } else {
+                    var replyToMessageId:MessageId?
+                    if messageId.peerId.namespace != Namespaces.Peer.CloudUser {
+                        replyToMessageId = messageId
+                    }
+                    _ = enqueueMessages(account: account, peerId: messageId.peerId, messages: [EnqueueMessage.message(text: text, attributes: [], mediaReference: nil, replyToMessageId: replyToMessageId, localGroupingKey: nil)]).start()
                 }
-                _ = enqueueMessages(account: account, peerId: messageId.peerId, messages: [EnqueueMessage.message(text: text, attributes: [], mediaReference: nil, replyToMessageId: replyToMessageId, localGroupingKey: nil)]).start()
+                
+                
             } else {
-                self.bindings.navigateToChat(account, messageId.peerId)
+                if let threadId = getNotificationMessageId(userInfo: userInfo, for: "thread"), let fromId = getNotificationMessageId(userInfo: userInfo, for: "source") {
+                    self.bindings.navigateToThread(account, threadId, fromId)
+                } else {
+                    self.bindings.navigateToChat(account, messageId.peerId)
+                }
+                center.removeDeliveredNotification(notification)
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
             }
         } else {
             center.removeDeliveredNotification(notification)

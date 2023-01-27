@@ -107,11 +107,11 @@ open class ImageButton: Button {
         
         let updated: CGImage?
         
-        if let image = images[state] {
+        if let image = images[state], isEnabled {
             updated = image
-        } else if state == .Highlight && autohighlight, let image = images[.Normal] {
+        } else if state == .Highlight && autohighlight, isEnabled, let image = images[.Normal] {
             updated = style.highlight(image: image)
-        } else if state == .Hover && highlightHovered, let image = images[.Normal] {
+        } else if state == .Hover && highlightHovered, isEnabled, let image = images[.Normal] {
             updated = style.highlight(image: image)
         } else {
             updated = images[.Normal]
@@ -121,6 +121,7 @@ open class ImageButton: Button {
             self.imageView.image = updated
         }
         
+        self.imageView.animator().alphaValue = isEnabled ? 1 : 0.8
         
         if let policy = self.hoverAdditionPolicy[state], previous != state {
             switch policy {
@@ -192,7 +193,7 @@ open class ImageButton: Button {
         super.setFrameOrigin(newOrigin)
     }
     
-    override public func sizeToFit(_ addition: NSSize = NSZeroSize, _ maxSize:NSSize = NSZeroSize, thatFit:Bool = false) -> Bool {
+    @discardableResult override public func sizeToFit(_ addition: NSSize = NSZeroSize, _ maxSize:NSSize = NSZeroSize, thatFit:Bool = false) -> Bool {
         _ = super.sizeToFit(addition, maxSize, thatFit: thatFit)
         
         if let image = images[.Normal] {

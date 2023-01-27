@@ -34,11 +34,13 @@ class PeerPhotosMonthItem: GeneralRowItem {
     fileprivate private(set) var itemSize: NSSize = NSZeroSize
     fileprivate let chatInteraction: ChatInteraction
     fileprivate let gallerySupplyment: InteractionContentViewProtocol
-    init(_ initialSize: NSSize, stableId: AnyHashable, viewType: GeneralViewType, context: AccountContext, chatInteraction: ChatInteraction, gallerySupplyment: InteractionContentViewProtocol, items: [Message]) {
+    fileprivate let galleryType: GalleryAppearType
+    init(_ initialSize: NSSize, stableId: AnyHashable, viewType: GeneralViewType, context: AccountContext, chatInteraction: ChatInteraction, gallerySupplyment: InteractionContentViewProtocol, items: [Message], galleryType: GalleryAppearType) {
         self.items = items
         self.context = context
         self.gallerySupplyment = gallerySupplyment
         self.chatInteraction = chatInteraction
+        self.galleryType = galleryType
         
         super.init(initialSize, stableId: stableId, viewType: viewType, inset: NSEdgeInsets())
     }
@@ -181,7 +183,7 @@ class PeerPhotosMonthItem: GeneralRowItem {
                     self?.chatInteraction.forwardMessages([message.id])
                 }))
             }
-            if canDeleteMessage(message, account: context.account) {
+            if canDeleteMessage(message, account: context.account, mode: .history) {
                 items.append(ContextMenuItem(L10n.messageContextDelete, handler: { [weak self] in
                    self?.chatInteraction.deleteMessages([message.id])
                 }))
@@ -542,7 +544,6 @@ private final class MediaVideoCell : MediaCell {
     
     override func update(layout: LayoutItem, context: AccountContext, table: TableView?) {
         super.update(layout: layout, context: context, table: table)
-        
         let file = layout.message.media.first as! TelegramMediaFile
         
          let updatedStatusSignal = chatMessageFileStatus(account: context.account, file: file) |> deliverOnMainQueue |> map { status -> (MediaResourceStatus, MediaResourceStatus) in
@@ -558,24 +559,24 @@ private final class MediaVideoCell : MediaCell {
            guard let `self` = self else {return}
            
             self.updateVideoAccessory(authentic, mediaPlayerStatus: self.videoView?.status, file: file, animated: !first)
-           first = false
-           self.status = status
-           self.authenticStatus = authentic
-           let progressStatus: MediaResourceStatus
-           switch authentic {
-           case .Fetching:
-               progressStatus = authentic
-           default:
-               progressStatus = status
-           }
-           switch progressStatus {
-           case let .Fetching(_, progress):
-               self.progressView.state = .Fetching(progress: progress, force: false)
-           case .Remote:
-               self.progressView.state = .Remote
-           case .Local:
-               self.progressView.state = .Play
-           }
+            first = false
+            self.status = status
+            self.authenticStatus = authentic
+            let progressStatus: MediaResourceStatus
+            switch authentic {
+            case .Fetching:
+                progressStatus = authentic
+            default:
+                progressStatus = status
+            }
+            switch progressStatus {
+            case let .Fetching(_, progress):
+                self.progressView.state = .Fetching(progress: progress, force: false)
+            case .Remote:
+                self.progressView.state = .Remote
+            case .Local:
+                self.progressView.state = .Play
+            }
         }))
         partDisposable.set(nil)
         self.preloadStreamblePart()
@@ -688,7 +689,12 @@ private final class MediaGifCell : MediaCell {
 
 private final class PeerPhotosMonthView : TableRowView, Notifable {
     private let containerView = GeneralRowContainerView(frame: NSZeroRect)
-    private var contentViews:[Optional<MediaCell>] = []
+    private var contentViews:[Optional<MediaCell>] = [] {
+        didSet {
+            var bp:Int = 0
+            bp == 1
+        }
+    }
 
     required init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -775,7 +781,7 @@ private final class PeerPhotosMonthView : TableRowView, Notifable {
                         case .gallery:
                             showChatGallery(context: item.context, message: layoutItem.message, item.gallerySupplyment, ChatMediaGalleryParameters(showMedia: { _ in}, showMessage: { message in
                                 layoutItem.chatInteraction.focusMessageId(nil, message.id, .center(id: 0, innerId: nil, animated: false, focus: .init(focus: true), inset: 0))
-                            }, isWebpage: false, media: layoutItem.message.media.first!, automaticDownload: true), reversed: true)
+                            }, isWebpage: false, media: layoutItem.message.media.first!, automaticDownload: true), type: item.galleryType, reversed: true)
                         case .nothing:
                             break
                         }
@@ -886,7 +892,9 @@ private final class PeerPhotosMonthView : TableRowView, Notifable {
                 } else {
                     view = self.contentViews[i]!
                 }
-                view.update(layout: layout, context: item.context, table: item.table)
+                if view.layoutItem != layout {
+                    view.update(layout: layout, context: item.context, table: item.table)
+                }
 
                 view.frame = layout.frame
             } else {
@@ -970,6 +978,7 @@ private final class PeerPhotosMonthView : TableRowView, Notifable {
         while self.contentViews.count < item.layoutItems.count {
             self.contentViews.append(nil)
         }
+        
         
         layoutVisibleItems(animated: animated)
     }

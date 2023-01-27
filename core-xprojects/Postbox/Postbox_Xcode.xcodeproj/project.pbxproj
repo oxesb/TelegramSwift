@@ -49,6 +49,7 @@
 		D048B33E203C838500038D05 /* PostboxUpgrade_15to16.swift in Sources */ = {isa = PBXBuildFile; fileRef = D048B33C203C838500038D05 /* PostboxUpgrade_15to16.swift */; };
 		D048B4A920A5CBE400C79D31 /* AdditionalChatListItemsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D048B4A720A5CBE400C79D31 /* AdditionalChatListItemsTable.swift */; };
 		D048B4B020A5EEAE00C79D31 /* AdditionalChatListItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D048B4AE20A5EEAE00C79D31 /* AdditionalChatListItemsView.swift */; };
+		D048EDD924FF9AF600977606 /* MessageHistoryThreadsTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D048EDD824FF9AF600977606 /* MessageHistoryThreadsTable.swift */; };
 		D049EAF11E44D9B900A2CD3A /* PostboxStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D049EAEF1E44D9B900A2CD3A /* PostboxStateView.swift */; };
 		D050F2661E4A5B5A00988324 /* MessageGloballyUniqueIdTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D019B1CE1E2E770700F80DB3 /* MessageGloballyUniqueIdTable.swift */; };
 		D050F2671E4A5B5A00988324 /* TimestampBasedMessageAttributesTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AAD1B11E3266B100D5B9DE /* TimestampBasedMessageAttributesTable.swift */; };
@@ -98,6 +99,8 @@
 		D098C6F21D7E1201007784E4 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = D098C6F01D7E11E9007784E4 /* Database.swift */; };
 		D0A352F61F5488E9001423DC /* InvalidatedMessageHistoryTagsSummaryTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A352F41F5488E9001423DC /* InvalidatedMessageHistoryTagsSummaryTable.swift */; };
 		D0A352F91F549D95001423DC /* InvalidatedMessageHistoryTagSummariesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A352F71F549D95001423DC /* InvalidatedMessageHistoryTagSummariesView.swift */; };
+		D0A8A7F625120A76002EA5E8 /* MessageHistoryHoleIndexTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A8A7F525120A75002EA5E8 /* MessageHistoryHoleIndexTable.swift */; };
+		D0A8A7F825120AF6002EA5E8 /* MessageHistoryThreadHoleIndexTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A8A7F725120AF6002EA5E8 /* MessageHistoryThreadHoleIndexTable.swift */; };
 		D0AA55141FB4C6AB00C2AB58 /* BinarySearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AA55121FB4C6AB00C2AB58 /* BinarySearch.swift */; };
 		D0AAD1B61E32673C00D5B9DE /* TimestampBasedMessageAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AAD1B41E32673C00D5B9DE /* TimestampBasedMessageAttributesView.swift */; };
 		D0B166EB1F9D142A00976B40 /* MessageOfInterestHolesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0B166E91F9D142A00976B40 /* MessageOfInterestHolesView.swift */; };
@@ -150,6 +153,7 @@
 		D0CCD6292232887100EE1E08 /* MessageHistoryHoleIndexTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CCD6272232887100EE1E08 /* MessageHistoryHoleIndexTable.swift */; };
 		D0CE8CF41F70249400AA2DB0 /* PostboxUpgrade_13to14.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE8CF21F70249400AA2DB0 /* PostboxUpgrade_13to14.swift */; };
 		D0CE8CF71F703B1E00AA2DB0 /* PendingPeerNotificationSettingsIndexTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE8CF51F703B1E00AA2DB0 /* PendingPeerNotificationSettingsIndexTable.swift */; };
+		D0D1391D252236B9005FCF35 /* PeerChatThreadInterfaceStateTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D1391C252236B9005FCF35 /* PeerChatThreadInterfaceStateTable.swift */; };
 		D0DA1D301F70419D0034E892 /* PendingPeerNotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA1D2E1F70419D0034E892 /* PendingPeerNotificationSettingsView.swift */; };
 		D0DA44491E4C7D1E005FDCA7 /* PostboxAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DA44471E4C7D1E005FDCA7 /* PostboxAccess.swift */; };
 		D0E119A1229834BC008CAE3A /* MutablePeerChatInclusionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E1199F229834BC008CAE3A /* MutablePeerChatInclusionView.swift */; };
@@ -272,6 +276,7 @@
 		D048B33C203C838500038D05 /* PostboxUpgrade_15to16.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostboxUpgrade_15to16.swift; sourceTree = "<group>"; };
 		D048B4A720A5CBE400C79D31 /* AdditionalChatListItemsTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdditionalChatListItemsTable.swift; sourceTree = "<group>"; };
 		D048B4AE20A5EEAE00C79D31 /* AdditionalChatListItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdditionalChatListItemsView.swift; sourceTree = "<group>"; };
+		D048EDD824FF9AF600977606 /* MessageHistoryThreadsTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageHistoryThreadsTable.swift; sourceTree = "<group>"; };
 		D049EAEF1E44D9B900A2CD3A /* PostboxStateView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PostboxStateView.swift; sourceTree = "<group>"; };
 		D055BD321B7D3D2D00F06C0A /* MediaBox.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MediaBox.swift; sourceTree = "<group>"; };
 		D0575AE21E9ECBB2006F2541 /* AccessChallengeDataView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AccessChallengeDataView.swift; sourceTree = "<group>"; };
@@ -321,6 +326,8 @@
 		D0A18D661E16874D004C6734 /* UnreadMessageCountsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UnreadMessageCountsView.swift; sourceTree = "<group>"; };
 		D0A352F41F5488E9001423DC /* InvalidatedMessageHistoryTagsSummaryTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvalidatedMessageHistoryTagsSummaryTable.swift; sourceTree = "<group>"; };
 		D0A352F71F549D95001423DC /* InvalidatedMessageHistoryTagSummariesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InvalidatedMessageHistoryTagSummariesView.swift; sourceTree = "<group>"; };
+		D0A8A7F525120A75002EA5E8 /* MessageHistoryHoleIndexTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageHistoryHoleIndexTable.swift; sourceTree = "<group>"; };
+		D0A8A7F725120AF6002EA5E8 /* MessageHistoryThreadHoleIndexTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageHistoryThreadHoleIndexTable.swift; sourceTree = "<group>"; };
 		D0AA55121FB4C6AB00C2AB58 /* BinarySearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BinarySearch.swift; sourceTree = "<group>"; };
 		D0AAD1B01E3266B100D5B9DE /* TimestampBasedMessageAttributesIndexTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimestampBasedMessageAttributesIndexTable.swift; sourceTree = "<group>"; };
 		D0AAD1B11E3266B100D5B9DE /* TimestampBasedMessageAttributesTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimestampBasedMessageAttributesTable.swift; sourceTree = "<group>"; };
@@ -365,6 +372,7 @@
 		D0CE63F51CA1CCB2002BC462 /* MediaResource.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MediaResource.swift; sourceTree = "<group>"; };
 		D0CE8CF21F70249400AA2DB0 /* PostboxUpgrade_13to14.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostboxUpgrade_13to14.swift; sourceTree = "<group>"; };
 		D0CE8CF51F703B1E00AA2DB0 /* PendingPeerNotificationSettingsIndexTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPeerNotificationSettingsIndexTable.swift; sourceTree = "<group>"; };
+		D0D1391C252236B9005FCF35 /* PeerChatThreadInterfaceStateTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PeerChatThreadInterfaceStateTable.swift; sourceTree = "<group>"; };
 		D0D510F31D63BA8400A97B8A /* PostboxTransaction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PostboxTransaction.swift; sourceTree = "<group>"; };
 		D0D510F51D63BBE100A97B8A /* MessageHistoryOperation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessageHistoryOperation.swift; sourceTree = "<group>"; };
 		D0D510F81D63BCC200A97B8A /* IntermediateMessage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntermediateMessage.swift; sourceTree = "<group>"; };
@@ -543,6 +551,10 @@
 		D0E1DE161C5EB06000C7826E /* Tables */ = {
 			isa = PBXGroup;
 			children = (
+				D0D1391C252236B9005FCF35 /* PeerChatThreadInterfaceStateTable.swift */,
+				D0A8A7F725120AF6002EA5E8 /* MessageHistoryThreadHoleIndexTable.swift */,
+				D0A8A7F525120A75002EA5E8 /* MessageHistoryHoleIndexTable.swift */,
+				D048EDD824FF9AF600977606 /* MessageHistoryThreadsTable.swift */,
 				A754972323A3A5540091F293 /* MessageHistoryFailedTable.swift */,
 				D03BCCF71C73561C0097A291 /* Table.swift */,
 				D019B1CE1E2E770700F80DB3 /* MessageGloballyUniqueIdTable.swift */,
@@ -914,6 +926,7 @@
 				D0F82D0D1E439FCC007E499C /* OrderedItemListEntry.swift in Sources */,
 				D0B418591D7DFE29004562A4 /* PostboxTransaction.swift in Sources */,
 				D0F7B1D21E045C6A007EB8A5 /* PeerNotificationSettingsTable.swift in Sources */,
+				D048EDD924FF9AF600977606 /* MessageHistoryThreadsTable.swift in Sources */,
 				D0E23DE31E808A9400B9B6D2 /* ItemCollectionIdsView.swift in Sources */,
 				D0119CAE20C9E7A100895300 /* PostboxUpgrade_17to18.swift in Sources */,
 				D0F7B1C91E045C6A007EB8A5 /* MessageHistoryTagsTable.swift in Sources */,
@@ -935,6 +948,7 @@
 				D08775071E3E3F2100A97350 /* PreferencesView.swift in Sources */,
 				D049EAF11E44D9B900A2CD3A /* PostboxStateView.swift in Sources */,
 				D0AAD1B61E32673C00D5B9DE /* TimestampBasedMessageAttributesView.swift in Sources */,
+				D0D1391D252236B9005FCF35 /* PeerChatThreadInterfaceStateTable.swift in Sources */,
 				D0F7B1C31E045C6A007EB8A5 /* Table.swift in Sources */,
 				D06ECFC620B796DC00C576C2 /* NoticeEntryView.swift in Sources */,
 				D0F82D101E43A024007E499C /* OrderedItemListIndexTable.swift in Sources */,
@@ -1029,7 +1043,9 @@
 				D040CA6522665370007123CE /* PostboxUpgrade_23to24.swift in Sources */,
 				D073CE741DCBF3B4007511FD /* Peer.swift in Sources */,
 				D073CE7A1DCBF3B4007511FD /* PeerReadState.swift in Sources */,
+				D0A8A7F825120AF6002EA5E8 /* MessageHistoryThreadHoleIndexTable.swift in Sources */,
 				D0F02CE31E9922F50065DEE2 /* PostboxUpgrade_12to13.swift in Sources */,
+				D0A8A7F625120A76002EA5E8 /* MessageHistoryHoleIndexTable.swift in Sources */,
 				D0C27B461F4B598200A4E170 /* CachedPeerDataView.swift in Sources */,
 				D073CE801DCBF3B4007511FD /* PeerChatInterfaceState.swift in Sources */,
 				D0F7B1C81E045C6A007EB8A5 /* MessageHistoryOperation.swift in Sources */,
@@ -1101,6 +1117,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -1120,6 +1137,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -1184,6 +1202,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -1201,6 +1220,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -1271,6 +1291,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -1290,6 +1311,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -1362,11 +1384,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEFINES_MODULE = YES;
@@ -1380,6 +1403,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -1444,6 +1468,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -1463,6 +1488,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",
@@ -1485,6 +1511,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
@@ -1501,6 +1528,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"-DSQLITE_HAS_CODEC=1",
 					"-DSQLCIPHER_CRYPTO_CC=1",

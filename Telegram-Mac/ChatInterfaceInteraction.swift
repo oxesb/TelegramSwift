@@ -30,10 +30,7 @@ final class ChatInteraction : InterfaceObserver  {
     let chatLocation: ChatLocation
     let mode: ChatMode
     var peerId : PeerId {
-        switch chatLocation {
-        case let .peer(peerId):
-            return peerId
-        }
+        return chatLocation.peerId
     }
     
     var peer: Peer? {
@@ -58,7 +55,7 @@ final class ChatInteraction : InterfaceObserver  {
         self.disableSelectAbility = disableSelectAbility
         self.isLogInteraction = isLogInteraction
         self.isGlobalSearchMessage = isGlobalSearchMessage
-        self.presentation = ChatPresentationInterfaceState(chatLocation)
+        self.presentation = ChatPresentationInterfaceState(chatLocation: chatLocation, chatMode: mode)
         self.mode = mode
         super.init()
         
@@ -91,6 +88,7 @@ final class ChatInteraction : InterfaceObserver  {
 
     //
     var focusMessageId: (MessageId?, MessageId, TableScrollState) -> Void = {_,_,_  in} // from, to, animated, position
+    var focusPinnedMessageId: (MessageId) -> Void = { _ in} // from, to, animated, position
     var sendMedia:([MediaSenderContainer]) -> Void = {_ in}
     var sendAppFile:(TelegramMediaFile, Bool) -> Void = { _,_ in}
     var sendMedias:([Media], ChatTextInputState, Bool, ChatTextInputState?, Bool, Date?) -> Void = {_,_,_,_,_,_ in}
@@ -116,7 +114,7 @@ final class ChatInteraction : InterfaceObserver  {
     var returnGroup:()->Void = {}
     var shareContact:(TelegramUser)->Void = {_ in}
     var unblock:()->Void = {}
-    var updatePinned:(MessageId, Bool, Bool)->Void = {_,_,_ in}
+    var updatePinned:(MessageId, Bool, Bool, Bool)->Void = {_,_,_,_ in}
     var reportSpamAndClose:()->Void = {}
     var dismissPeerStatusOptions:()->Void = {}
     var toggleSidebar:()->Void = {}
@@ -145,6 +143,17 @@ final class ChatInteraction : InterfaceObserver  {
     var openScheduledMessages: ()->Void = {}
     var openBank: (String)->Void = { _ in }
     var getGradientOffsetRect:()->NSRect = {  return .zero }
+    var contextHolder:()->Atomic<ChatLocationContextHolder?> = { Atomic(value: nil) }
+    
+    var openPinnedMessages: (MessageId)->Void = { _ in }
+    var unpinAllMessages: ()->Void = {}
+    var setLocation: (ChatHistoryLocation)->Void = { _ in }
+    var scrollToTheFirst: () -> Void = {}
+    var openReplyThread:(MessageId, Bool, Bool, ReplyThreadMode)->Void = {  _, _, _, _ in }
+
+    func chatLocationInput() -> ChatLocationInput {
+        return context.chatLocationInput(for: self.chatLocation, contextHolder: contextHolder())
+    }
     
     var unarchive: ()->Void = { }
 
@@ -337,8 +346,8 @@ final class ChatInteraction : InterfaceObserver  {
                         $0.withoutInitialAction()
                     })
                 }
-            case let .forward(messageIds, text, _):
-                update(animated: animated, {$0.updatedInterfaceState({$0.withUpdatedForwardMessageIds(messageIds).withUpdatedInputState(text != nil ? ChatTextInputState(inputText: text!) : $0.inputState)})})
+            case let .forward(messageIds, inputState, _):
+                update(animated: animated, {$0.updatedInterfaceState({$0.withUpdatedForwardMessageIds(messageIds).withUpdatedInputState(inputState ?? $0.inputState)})})
                 update({
                     $0.withoutInitialAction()
                 })
@@ -378,7 +387,7 @@ final class ChatInteraction : InterfaceObserver  {
                     case .openWebApp:
                         strongSelf.requestMessageActionCallback(keyboardMessage.id, true, nil)
                     case let .callback(data):
-                        strongSelf.requestMessageActionCallback(keyboardMessage.id, false, (requiresPassword: false, data))
+                        strongSelf.requestMessageActionCallback(keyboardMessage.id, false, data)
                     case let .switchInline(samePeer: same, query: query):
                         let text = "@\(keyboardMessage.inlinePeer?.username ?? keyboardMessage.author?.username ?? "") \(query)"
                         if same {
@@ -435,11 +444,10 @@ final class ChatInteraction : InterfaceObserver  {
     
     public func saveState(_ force:Bool = true, scrollState: ChatInterfaceHistoryScrollState? = nil) {
         
-        
         let timestamp = Int32(Date().timeIntervalSince1970)
         let interfaceState = presentation.interfaceState.withUpdatedTimestamp(timestamp).withUpdatedHistoryScrollState(scrollState)
         
-        var s:Signal<Void, NoError> = updatePeerChatInterfaceState(account: context.account, peerId: peerId, state: interfaceState)
+        var s:Signal<Void, NoError> = updatePeerChatInterfaceState(account: context.account, peerId: peerId, threadId: mode.threadId64, state: interfaceState)
         if !force && !interfaceState.inputState.inputText.isEmpty {
             s = s |> delay(10, queue: Queue.mainQueue())
         }

@@ -54,9 +54,9 @@ class ChatVoiceContentView: ChatAudioContentView {
                 
                 let controller:APController
                 if parameters.isWebpage {
-                    controller = APSingleResourceController(context: context, wrapper: APSingleWrapper(resource: parameters.resource, name: L10n.audioControllerVoiceMessage, performer: parent.author?.displayTitle, id: parent.chatStableId), streamable: false)
+                    controller = APSingleResourceController(context: context, wrapper: APSingleWrapper(resource: parameters.resource, name: L10n.audioControllerVoiceMessage, performer: parent.author?.displayTitle, id: parent.chatStableId), streamable: false, volume: FastSettings.volumeRate)
                 } else {
-                    controller = APChatVoiceController(context: context, peerId: parent.id.peerId, index: MessageIndex(parent))
+                    controller = APChatVoiceController(context: context, chatLocationInput: parameters.chatLocationInput(), mode: parameters.chatMode, index: MessageIndex(parent), volume: FastSettings.volumeRate)
                 }
                 parameters.showPlayer(controller)
                 controller.start()
@@ -173,7 +173,7 @@ class ChatVoiceContentView: ChatAudioContentView {
         
         let file:TelegramMediaFile = media as! TelegramMediaFile
         
-        self.progressView.state = .None
+      //  self.progressView.state = .None
  
         if let parent = parent, parent.flags.contains(.Unsent) && !parent.flags.contains(.Failed) {
             updatedStatusSignal = combineLatest(chatMessageFileStatus(account: context.account, file: file), context.account.pendingMessageManager.pendingMessageStatus(parent.id))

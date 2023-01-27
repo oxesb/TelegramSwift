@@ -6,6 +6,7 @@
 //  Copyright © 2016 Telegram. All rights reserved.
 //
 
+
 import Cocoa
 import TGUIKit
 import SwiftSignalKit
@@ -15,12 +16,18 @@ import Postbox
 
 
 
+
+
+
+
+
+
 enum ChatHeaderState : Identifiable, Equatable {
     case none
     case search(ChatSearchInteractions, Peer?, String?)
     case addContact(block: Bool, autoArchived: Bool)
     case shareInfo
-    case pinned(MessageId)
+    case pinned(ChatPinnedMessage, doNotChangeTable: Bool)
     case report(autoArchived: Bool)
     case promo(PromoChatListItem.Kind)
     var stableId:Int {
@@ -39,6 +46,25 @@ enum ChatHeaderState : Identifiable, Equatable {
             return 5
         case .shareInfo:
             return 6
+        }
+    }
+    
+    var viewClass: AnyClass? {
+        switch self {
+        case let .addContact:
+            return AddContactView.self
+        case .shareInfo:
+            return ShareInfoView.self
+        case .pinned:
+            return ChatPinnedView.self
+        case .search:
+            return ChatSearchHeader.self
+        case .report:
+            return ChatReportView.self
+        case .promo:
+            return ChatSponsoredView.self
+        case .none:
+            return nil
         }
     }
     
@@ -61,10 +87,19 @@ enum ChatHeaderState : Identifiable, Equatable {
         }
     }
     
+    var toleranceHeight: CGFloat {
+        switch self {
+        case let .pinned(_, doNotChangeTable):
+            return doNotChangeTable ? 0 : height
+        default:
+            return height
+        }
+    }
+    
     static func ==(lhs:ChatHeaderState, rhs: ChatHeaderState) -> Bool {
         switch lhs {
-        case let .pinned(pinnedId):
-            if case .pinned(pinnedId) = rhs {
+        case let .pinned(pinnedId, value):
+            if case .pinned(pinnedId, value) = rhs {
                 return true
             } else {
                 return false
@@ -98,6 +133,17 @@ class ChatHeaderController {
         if _headerState != state {
             let previousState = _headerState
             _headerState = state
+            
+            
+            if previousState.viewClass == state.viewClass {
+                switch state {
+                case let .pinned(message, _):
+                    (currentView as? ChatPinnedView)?.update(message, animated: animated)
+                    return
+                default:
+                    break
+                }
+            }
             
             if let current = currentView {
                 if animated {
@@ -135,7 +181,7 @@ class ChatHeaderController {
             view = AddContactView(chatInteraction, canBlock: block, autoArchived: autoArchived)
         case .shareInfo:
             view = ShareInfoView(chatInteraction)
-        case let .pinned(messageId):
+        case let .pinned(messageId, _):
             view = ChatPinnedView(messageId, chatInteraction: chatInteraction)
         case let .search(interactions, initialPeer, initialString):
             view = ChatSearchHeader(interactions, chatInteraction: chatInteraction, initialPeer: initialPeer, initialString: initialString)
@@ -304,27 +350,48 @@ private final class ChatSponsoredView : Control {
 }
 
 class ChatPinnedView : Control {
-    private let node:ReplyModel
+    private var node:ReplyModel
     private let chatInteraction:ChatInteraction
     private let readyDisposable = MetaDisposable()
-    private let container:ChatAccessoryView = ChatAccessoryView()
+    private var container:ChatAccessoryView = ChatAccessoryView()
     private let dismiss:ImageButton = ImageButton()
     private let loadMessageDisposable = MetaDisposable()
-    init(_ messageId:MessageId, chatInteraction:ChatInteraction) {
-        node = ReplyModel(replyMessageId: messageId, account: chatInteraction.context.account, replyMessage: chatInteraction.presentation.cachedPinnedMessage, isPinned: true)
+    private var pinnedMessage: ChatPinnedMessage
+    private let particleList: VerticalParticleListControl = VerticalParticleListControl()
+    init(_ pinnedMessage:ChatPinnedMessage, chatInteraction:ChatInteraction) {
+        self.pinnedMessage = pinnedMessage
+        
+        node = ReplyModel(replyMessageId: pinnedMessage.messageId, account: chatInteraction.context.account, replyMessage: pinnedMessage.message, isPinned: true, headerAsName: chatInteraction.mode.threadId != nil, customHeader: pinnedMessage.isLatest ? nil : pinnedMessage.totalCount == 2 ? L10n.chatHeaderPinnedPrevious : L10n.chatHeaderPinnedMessageNumer(pinnedMessage.totalCount - pinnedMessage.index), drawLine: false)
         self.chatInteraction = chatInteraction
         super.init()
         
         dismiss.disableActions()
-        self.dismiss.set(image: theme.icons.dismissPinned, for: .Normal)
+        self.dismiss.set(image: pinnedMessage.totalCount <= 1 ? theme.icons.dismissPinned : theme.icons.chat_pinned_list, for: .Normal)
         _ = self.dismiss.sizeToFit()
         
+        self.dismiss.isHidden = chatInteraction.mode.threadId == pinnedMessage.messageId
+        
         self.set(handler: { [weak self] _ in
-            self?.chatInteraction.focusMessageId(nil, messageId, .center(id: 0, innerId: nil, animated: true, focus: .init(focus: true), inset: 0))
+            guard let `self` = self else {
+                return
+            }
+            if self.chatInteraction.mode.threadId == self.pinnedMessage.messageId {
+                self.chatInteraction.scrollToTheFirst()
+            } else {
+                self.chatInteraction.focusPinnedMessageId(self.pinnedMessage.messageId)
+            }
+            
         }, for: .Click)
         
         dismiss.set(handler: { [weak self] _ in
-            self?.chatInteraction.updatePinned(messageId, true, false)
+            guard let `self` = self else {
+                return
+            }
+            if self.pinnedMessage.totalCount > 1 {
+                self.chatInteraction.openPinnedMessages(self.pinnedMessage.messageId)
+            } else {
+                self.chatInteraction.updatePinned(self.pinnedMessage.messageId, true, false, false)
+            }
         }, for: .SingleClick)
         
         addSubview(dismiss)
@@ -336,10 +403,69 @@ class ChatPinnedView : Control {
             self?.needsLayout = true
             
             if !result, let chatInteraction = self?.chatInteraction {
-                _ = requestUpdatePinnedMessage(account: chatInteraction.context.account, peerId: chatInteraction.peerId, update: .clear).start()
+                _ = requestUpdatePinnedMessage(account: chatInteraction.context.account, peerId: chatInteraction.peerId, update: .clear(id: pinnedMessage.messageId)).start()
             }
         }))
+        
+        particleList.frame = NSMakeRect(20, 5, 3, 34)
+        
+        addSubview(particleList)
+        
+        particleList.update(count: pinnedMessage.totalCount, selectedIndex: pinnedMessage.index, animated: false)
+        
         updateLocalizationAndTheme(theme: theme)
+    }
+    
+    func update(_ pinnedMessage: ChatPinnedMessage, animated: Bool) {
+        
+        let animated = animated && (!pinnedMessage.isLatest || (self.pinnedMessage.isLatest != pinnedMessage.isLatest))
+        
+        particleList.update(count: pinnedMessage.totalCount, selectedIndex: pinnedMessage.index, animated: animated)
+        
+        self.dismiss.set(image: pinnedMessage.totalCount <= 1 ? theme.icons.dismissPinned : theme.icons.chat_pinned_list, for: .Normal)
+        
+        if pinnedMessage.messageId != self.pinnedMessage.messageId {
+            let oldContainer = self.container
+            let newContainer = ChatAccessoryView()
+            newContainer.userInteractionEnabled = false
+            
+            let newNode = ReplyModel(replyMessageId: pinnedMessage.messageId, account: chatInteraction.context.account, replyMessage: pinnedMessage.message, isPinned: true, headerAsName: chatInteraction.mode.threadId != nil, customHeader: pinnedMessage.isLatest ? nil : pinnedMessage.totalCount == 2 ? L10n.chatHeaderPinnedPrevious : L10n.chatHeaderPinnedMessageNumer(pinnedMessage.totalCount - pinnedMessage.index), drawLine: false)
+            
+            newNode.view = newContainer
+            
+            addSubview(newContainer)
+            
+            let width = frame.width - (40 + (dismiss.isHidden ? 0 : 30))
+            newNode.measureSize(width)
+            newContainer.setFrameSize(width, newNode.size.height)
+            newContainer.centerY(x: 23)
+            
+            if animated {
+                let oldFrom = oldContainer.frame.origin
+                let oldTo = pinnedMessage.messageId > self.pinnedMessage.messageId ? NSMakePoint(oldContainer.frame.minX, -oldContainer.frame.height) : NSMakePoint(oldContainer.frame.minX, frame.height)
+                
+                
+                oldContainer.layer?.animatePosition(from: oldFrom, to: oldTo, duration: 0.3, timingFunction: .spring, removeOnCompletion: false, completion: { [weak oldContainer] _ in
+                    oldContainer?.removeFromSuperview()
+                })
+                oldContainer.layer?.animateAlpha(from: 1, to: 0, duration: 0.3, timingFunction: .spring, removeOnCompletion: false)
+                
+                
+                let newTo = newContainer.frame.origin
+                let newFrom = pinnedMessage.messageId < self.pinnedMessage.messageId ? NSMakePoint(newContainer.frame.minX, -newContainer.frame.height) : NSMakePoint(newContainer.frame.minX, frame.height)
+                
+                
+                newContainer.layer?.animatePosition(from: newFrom, to: newTo, duration: 0.3, timingFunction: .spring)
+                newContainer.layer?.animateAlpha(from: 0, to: 1, duration: 0.3
+                    , timingFunction: .spring)
+            } else {
+                oldContainer.removeFromSuperview()
+            }
+            
+            self.container = newContainer
+            self.node = newNode
+        }
+        self.pinnedMessage = pinnedMessage
     }
     
     override func updateLocalizationAndTheme(theme: PresentationTheme) {
@@ -347,7 +473,7 @@ class ChatPinnedView : Control {
         let theme = (theme as! TelegramPresentationTheme)
         node.update()
         self.backgroundColor = theme.colors.background
-        self.dismiss.set(image: theme.icons.dismissPinned, for: .Normal)
+        self.dismiss.set(image: pinnedMessage.totalCount <= 1 ? theme.icons.dismissPinned : theme.icons.chat_pinned_list, for: .Normal)
         container.backgroundColor = theme.colors.background
     }
     
@@ -357,9 +483,9 @@ class ChatPinnedView : Control {
     
  
     override func layout() {
-        node.measureSize(frame.width - 70)
-        container.setFrameSize(frame.width - 70, node.size.height)
-        container.centerY(x: 20)
+        node.measureSize(frame.width - (40 + (dismiss.isHidden ? 0 : 30)))
+        container.setFrameSize(frame.width - (40 + (dismiss.isHidden ? 0 : 30)), node.size.height)
+        container.centerY(x: 23)
         dismiss.centerY(x: frame.width - 20 - dismiss.frame.width)
         node.setNeedDisplay()
     }
@@ -454,7 +580,7 @@ class ChatReportView : Control {
         dismiss.centerY(x: frame.width - dismiss.frame.width - 20)
         
         
-        buttonsContainer.frame = NSMakeRect(0, 0, frame.width - (frame.width - dismiss.frame.minX), frame.height - .borderSize)
+        buttonsContainer.frame = NSMakeRect(0, 0, frame.width, frame.height - .borderSize)
         
         
         var buttons:[Control] = []
@@ -806,7 +932,7 @@ class ChatSearchHeader : View, Notifable {
         self.interactions = interactions
         self.parentInteractions = chatInteraction
         self.calendarController = CalendarController(NSMakeRect(0, 0, 250, 250), chatInteraction.context.window, selectHandler: interactions.calendarAction)
-        self.chatInteraction = ChatInteraction(chatLocation: chatInteraction.chatLocation, context: chatInteraction.context)
+        self.chatInteraction = ChatInteraction(chatLocation: chatInteraction.chatLocation, context: chatInteraction.context, mode: chatInteraction.mode)
         self.chatInteraction.update({$0.updatedPeer({_ in chatInteraction.presentation.peer})})
         self.inputContextHelper = InputContextHelper(chatInteraction: self.chatInteraction, highlightInsteadOfSelect: true)
         
@@ -851,7 +977,7 @@ class ChatSearchHeader : View, Notifable {
       
     }
     
-    func applySearchResponder() {
+    func applySearchResponder(_ animated: Bool = false) {
        // _ = window?.makeFirstResponder(searchView.input)
         searchView.layout()
         if searchView.state == .Focus && window?.firstResponder != searchView.input {
@@ -861,12 +987,12 @@ class ChatSearchHeader : View, Notifable {
     }
     
     private var calendarAbility: Bool {
-        return true
+        return chatInteraction.mode != .scheduled && chatInteraction.mode != .pinned
     }
     
     private var fromAbility: Bool {
         if let peer = chatInteraction.presentation.peer {
-            return peer.isSupergroup || peer.isGroup
+            return (peer.isSupergroup || peer.isGroup) && (chatInteraction.mode == .history || chatInteraction.mode.isThreadMode)
         } else {
             return false
         }
@@ -896,8 +1022,8 @@ class ChatSearchHeader : View, Notifable {
                     needsLayout = true
                     searchView.change(size: NSMakeSize(searchWidth, searchView.frame.height), animated: animated)
                     
-                    if peer.isSupergroup || peer.isGroup {
-                        if let (updatedContextQueryState, updatedContextQuerySignal) = chatContextQueryForSearchMention(peer: peer, .mention(query: value.searchState.request, includeRecent: false), currentQuery: self.contextQueryState?.0, context: context) {
+                    if (peer.isSupergroup || peer.isGroup) && chatInteraction.mode == .history {
+                        if let (updatedContextQueryState, updatedContextQuerySignal) = chatContextQueryForSearchMention(chatLocations: [chatInteraction.chatLocation], .mention(query: value.searchState.request, includeRecent: false), currentQuery: self.contextQueryState?.0, context: context) {
                             self.contextQueryState?.1.dispose()
                             self.contextQueryState = (updatedContextQueryState, (updatedContextQuerySignal |> deliverOnMainQueue).start(next: { [weak self] result in
                                 if let strongSelf = self {
@@ -949,7 +1075,7 @@ class ChatSearchHeader : View, Notifable {
                             }
                         })
                     } else {
-                        if let (updatedContextQueryState, updatedContextQuerySignal) = chatContextQueryForSearchMention(peer: peer, .mention(query: query, includeRecent: false), currentQuery: self.contextQueryState?.0, context: context) {
+                        if let (updatedContextQueryState, updatedContextQuerySignal) = chatContextQueryForSearchMention(chatLocations: [chatInteraction.chatLocation], .mention(query: query, includeRecent: false), currentQuery: self.contextQueryState?.0, context: context) {
                             self.contextQueryState?.1.dispose()
                             var inScope = true
                             var inScopeResult: ((ChatPresentationInputQueryResult?) -> ChatPresentationInputQueryResult?)?

@@ -33,8 +33,8 @@ class MediaAnimatedStickerView: ChatMediaContentView {
     }
     required init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        addSubview(self.thumbView)
         addSubview(self.playerView)
+        addSubview(self.thumbView)
 
     }
     
@@ -120,7 +120,8 @@ class MediaAnimatedStickerView: ChatMediaContentView {
             if let context = context, let peerId = parent?.id.peerId, let media = media as? TelegramMediaFile, !media.isEmojiAnimatedSticker, let reference = media.stickerReference {
                 showModal(with:StickerPackPreviewModalController(context, peerId: peerId, reference: reference), for:window)
             } else {
-                self.playerView.playIfNeeded()
+                self.playerView.playIfNeeded(true)
+                
             }
         }
     }
@@ -181,9 +182,7 @@ class MediaAnimatedStickerView: ChatMediaContentView {
         }
         self.nextForceAccept = approximateSynchronousValue || parent?.id.namespace == Namespaces.Message.Local
 
-        
         super.update(with: media, size: size, context: context, parent: parent, table: table, parameters: parameters, animated: animated, positionFlags: positionFlags, approximateSynchronousValue: approximateSynchronousValue)
-     
         
         let reference: FileMediaReference
         let mediaResource: MediaResourceReference
@@ -217,7 +216,6 @@ class MediaAnimatedStickerView: ChatMediaContentView {
         }
         
         self.loadResourceDisposable.set((data |> map { resourceData -> Data? in
-
             if resourceData.complete, let data = try? Data(contentsOf: URL(fileURLWithPath: resourceData.path), options: [.mappedIfSafe]) {
                 return data
             }
@@ -226,11 +224,17 @@ class MediaAnimatedStickerView: ChatMediaContentView {
             if let data = data, let file = file, let `self` = self {
                 let parameters = parameters as? ChatAnimatedStickerMediaLayoutParameters
                 let playPolicy: LottiePlayPolicy = parameters?.playPolicy ?? (file.isEmojiAnimatedSticker || !self.chatLoopAnimated ? (self.parameters == nil ? .framesCount(1) : .once) : .loop)
-
+                var soundEffect: LottieSoundEffect? = nil
+                if file.isEmojiAnimatedSticker, let emoji = file.stickerText {
+                    let emojies = EmojiesSoundConfiguration.with(appConfiguration: context.appConfiguration)
+                    if let file = emojies.sounds[emoji] {
+                        soundEffect = LottieSoundEffect(file: file, postbox: context.account.postbox, triggerOn: 1)
+                    }
+                }
                 let maximumFps: Int = size.width < 200 && !file.isEmojiAnimatedSticker ? size.width <= 30 ? 24 : 30 : 60
                 let cache: ASCachePurpose = parameters?.cache ?? (size.width < 200 && size.width > 30 ? .temporaryLZ4(.thumb) : self.parent != nil ? .temporaryLZ4(.chat) : .none)
                 let fitzModifier = file.animatedEmojiFitzModifier
-                self.sticker = LottieAnimation(compressed: data, key: LottieAnimationEntryKey(key: .media(file.id), size: size, fitzModifier: fitzModifier), cachePurpose: cache, playPolicy: playPolicy, maximumFps: maximumFps, postbox: self.context?.account.postbox)
+                self.sticker = LottieAnimation(compressed: data, key: LottieAnimationEntryKey(key: .media(file.id), size: size, fitzModifier: fitzModifier), cachePurpose: cache, playPolicy: playPolicy, maximumFps: maximumFps, soundEffect: soundEffect, postbox: self.context?.account.postbox)
                 self.fetchStatus = .Local
             } else {
                 self?.sticker = nil
@@ -250,12 +254,10 @@ class MediaAnimatedStickerView: ChatMediaContentView {
             })
             self.thumbView.set(arguments: arguments)
         }
-
+        
         fetchDisposable.set(fetchedMediaResource(mediaBox: context.account.postbox.mediaBox, reference: mediaResource).start())
         stateDisposable.set((self.playerView.state |> deliverOnMainQueue).start(next: { [weak self] state in
             guard let `self` = self else { return }
-            
-            
             switch state {
             case .playing:
                 self.playerView.isHidden = false
@@ -273,6 +275,8 @@ class MediaAnimatedStickerView: ChatMediaContentView {
                 self.playerView.isHidden = false
                 self.thumbView.isHidden = false
             }
+
+            
         }))
     }
     

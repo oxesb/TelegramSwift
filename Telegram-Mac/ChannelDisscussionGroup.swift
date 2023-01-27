@@ -179,14 +179,14 @@ private func channelDiscussionEntries(state: DiscussionState, arguments: Discuss
     switch state.type {
     case .channel:
         if let associatedPeer = state.associatedPeer {
-            let text = L10n.discussionControllerChannelSetHeader(associatedPeer.displayTitle)
+            let text = L10n.discussionControllerChannelSetHeader1(associatedPeer.displayTitle)
             entries.append(InputDataEntry.custom(sectionId: sectionId, index: index, value: .none, identifier: _id_channel_header, equatable: InputDataEquatable(text), item: { initialSize, stableId in
                 
                 let attributedString = NSMutableAttributedString()
                 _ = attributedString.append(string: text, color: theme.colors.grayText, font: .normal(.text))
                 attributedString.detectBoldColorInString(with: .medium(.text))
                 
-                return DiscussionHeaderItem(initialSize, stableId: stableId, icon: generateDiscussIcon(), text: attributedString)
+                return DiscussionHeaderItem(initialSize, stableId: stableId, context: arguments.context, text: attributedString)
             }))
             index += 1
             
@@ -215,13 +215,13 @@ private func channelDiscussionEntries(state: DiscussionState, arguments: Discuss
             }
             
         } else {
-            let text = L10n.discussionControllerChannelEmptyHeader
+            let text = L10n.discussionControllerChannelEmptyHeader1
 
             entries.append(InputDataEntry.custom(sectionId: sectionId, index: index, value: .none, identifier: _id_channel_header, equatable: InputDataEquatable(text), item: { initialSize, stableId in
                 
                 let attributedString = NSMutableAttributedString()
                 _ = attributedString.append(string: text, color: theme.colors.grayText, font: .normal(.text))
-                return DiscussionHeaderItem(initialSize, stableId: stableId, icon: generateDiscussIcon(), text: attributedString)
+                return DiscussionHeaderItem(initialSize, stableId: stableId, context: arguments.context, text: attributedString)
             }))
             index += 1
             
@@ -252,7 +252,7 @@ private func channelDiscussionEntries(state: DiscussionState, arguments: Discuss
                 _ = attributedString.append(string: L10n.discussionControllerGroupSetHeader(associatedPeer.displayTitle), color: theme.colors.grayText, font: .normal(.text))
                 attributedString.detectBoldColorInString(with: .medium(.text))
                 
-                return DiscussionHeaderItem(initialSize, stableId: stableId, icon: generateDiscussIcon(), text: attributedString)
+                return DiscussionHeaderItem(initialSize, stableId: stableId, context: arguments.context, text: attributedString)
             }))
             
             index += 1
@@ -428,7 +428,7 @@ func ChannelDiscussionSetupController(context: AccountContext, peer: Peer)-> Inp
         updateState { current in
             var current = current
             let peer = peerViewMainPeer(peerView)
-            if let cachedData = peerView.cachedData as? CachedChannelData, let linkedDiscussionPeerId = cachedData.linkedDiscussionPeerId {
+            if let cachedData = peerView.cachedData as? CachedChannelData, let linkedDiscussionPeerId = cachedData.linkedDiscussionPeerId.peerId {
                 current = current.withUpdatedassociatedPeer(peerView.peers[linkedDiscussionPeerId])
             } else {
                 current = current.withUpdatedassociatedPeer(nil)

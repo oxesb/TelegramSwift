@@ -449,15 +449,18 @@ func initialize() -> [String] {
     array.append("poll_quiz_unselected")
     
     array.append("poll_selected")
+    array.append("poll_selection")
     array.append("poll_selected_correct")
     array.append("poll_selected_incorrect")
 
     
     array.append("poll_selected_incoming")
+    array.append("poll_selection_incoming")
     array.append("poll_selected_correct_incoming")
     array.append("poll_selected_incorrect_incoming")
 
     array.append("poll_selected_outgoing")
+    array.append("poll_selection_outgoing")
     array.append("poll_selected_correct_outgoing")
     array.append("poll_selected_incorrect_outgoing")
     
@@ -569,9 +572,44 @@ func initialize() -> [String] {
     array.append("call_screen_sharing")
     array.append("call_screen_sharing_active")
 
+    array.append("call_screen_settings")
+
     
     array.append("search_filter")
+    array.append("search_filter_media")
+    array.append("search_filter_files")
+    array.append("search_filter_links")
+    array.append("search_filter_music")
+    array.append("search_filter_add_peer")
+    array.append("search_filter_add_peer_active")
+
     
+    array.append("chat_reply_count_bubble_incoming")
+    array.append("chat_reply_count_bubble_outgoing")
+    array.append("chat_reply_count")
+    array.append("chat_reply_count_overlay")
+    
+    array.append("channel_comments_bubble")
+    array.append("channel_comments_bubble_next")
+    array.append("channel_comments_list")
+    array.append("channel_comments_overlay")
+    
+    array.append("chat_replies_avatar")
+
+    
+    array.append("group_selection_foreground")
+    array.append("group_selection_foreground_bubble_incoming")
+    array.append("group_selection_foreground_bubble_outgoing")
+    
+    
+    array.append("chat_pinned_list")
+    
+    array.append("chat_pinned_message")
+    array.append("chat_pinned_message_bubble_incoming")
+    array.append("chat_pinned_message_bubble_outgoing")
+    array.append("chat_pinned_message_overlay_bubble")
+    
+
     return array
 }
 //swift ./tools/generate-images.swift

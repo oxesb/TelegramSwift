@@ -67,6 +67,12 @@ class TableViewController: TelegramGenericViewController<TableView>, TableViewDe
         }
     }
     
+    override func scrollup(force: Bool = false) {
+        if isLoaded() {
+            self.genericView.scroll(to: .up(!force))
+        }
+    }
+    
     override func updateLocalizationAndTheme(theme: PresentationTheme) {
         super.updateLocalizationAndTheme(theme: theme)
     }
@@ -222,6 +228,10 @@ final class Appearance : Equatable {
     init(language: TelegramLocalization, presentation: TelegramPresentationTheme) {
         self.language = language
         self.presentation = presentation
+    }
+    
+    var locale: Locale {
+        return Locale(identifier: appAppearance.language.languageCode)
     }
     
     var newAllocation: Appearance {

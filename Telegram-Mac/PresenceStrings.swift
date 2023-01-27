@@ -11,6 +11,8 @@ import Postbox
 import TelegramCore
 import SyncCore
 import TGUIKit
+import MapKit
+
 func stringForTimestamp(day: Int32, month: Int32, year: Int32) -> String {
     return String(format: "%d.%02d.%02d", day, month, year - 100)
 }
@@ -82,13 +84,14 @@ func relativeUserPresenceStatus(_ presence: TelegramUserPresence, timeDifference
 }
 
 func stringAndActivityForUserPresence(_ presence: TelegramUserPresence, timeDifference: TimeInterval, relativeTo timestamp: Int32, expanded: Bool = false) -> (String, Bool, NSColor) {
+    
     switch presence.status {
     case .none:
         return (L10n.peerStatusLongTimeAgo, false, theme.colors.grayText)
     case let .present(statusTimestamp):
         let statusTimestampInt: Int = Int(statusTimestamp)
         let statusTimestamp = Int32(min(statusTimestampInt - Int(timeDifference), Int(INT32_MAX)))
-        if statusTimestamp >= timestamp {
+        if statusTimestamp > timestamp {
             return (L10n.peerStatusOnline, true, theme.colors.accent)
         } else {
             let difference = timestamp - statusTimestamp
@@ -262,4 +265,17 @@ func stringForFullDate(timestamp: Int32) -> String {
     default:
         return ""
     }
+}
+private var sharedDistanceFormatter: MKDistanceFormatter?
+func stringForDistance(distance: CLLocationDistance) -> String {
+    let distanceFormatter: MKDistanceFormatter
+    if let currentDistanceFormatter = sharedDistanceFormatter {
+        distanceFormatter = currentDistanceFormatter
+    } else {
+        distanceFormatter = MKDistanceFormatter()
+        distanceFormatter.unitStyle = .full
+        sharedDistanceFormatter = distanceFormatter
+    }
+    
+    return distanceFormatter.string(fromDistance: distance)
 }

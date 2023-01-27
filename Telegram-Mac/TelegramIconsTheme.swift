@@ -5698,6 +5698,19 @@ final class TelegramIconsTheme {
           return image
       }
   }
+  var poll_selection: CGImage {
+      if let image = cached.with({ $0["poll_selection"] }) {
+          return image
+      } else {
+          let image = _poll_selection()
+          _ = cached.modify { current in 
+              var current = current
+              current["poll_selection"] = image
+              return current
+          }
+          return image
+      }
+  }
   var poll_selected_correct: CGImage {
       if let image = cached.with({ $0["poll_selected_correct"] }) {
           return image
@@ -5737,6 +5750,19 @@ final class TelegramIconsTheme {
           return image
       }
   }
+  var poll_selection_incoming: CGImage {
+      if let image = cached.with({ $0["poll_selection_incoming"] }) {
+          return image
+      } else {
+          let image = _poll_selection_incoming()
+          _ = cached.modify { current in 
+              var current = current
+              current["poll_selection_incoming"] = image
+              return current
+          }
+          return image
+      }
+  }
   var poll_selected_correct_incoming: CGImage {
       if let image = cached.with({ $0["poll_selected_correct_incoming"] }) {
           return image
@@ -5771,6 +5797,19 @@ final class TelegramIconsTheme {
           _ = cached.modify { current in 
               var current = current
               current["poll_selected_outgoing"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var poll_selection_outgoing: CGImage {
+      if let image = cached.with({ $0["poll_selection_outgoing"] }) {
+          return image
+      } else {
+          let image = _poll_selection_outgoing()
+          _ = cached.modify { current in 
+              var current = current
+              current["poll_selection_outgoing"] = image
               return current
           }
           return image
@@ -6881,6 +6920,19 @@ final class TelegramIconsTheme {
           return image
       }
   }
+  var call_screen_settings: CGImage {
+      if let image = cached.with({ $0["call_screen_settings"] }) {
+          return image
+      } else {
+          let image = _call_screen_settings()
+          _ = cached.modify { current in 
+              var current = current
+              current["call_screen_settings"] = image
+              return current
+          }
+          return image
+      }
+  }
   var search_filter: CGImage {
       if let image = cached.with({ $0["search_filter"] }) {
           return image
@@ -6889,6 +6941,305 @@ final class TelegramIconsTheme {
           _ = cached.modify { current in 
               var current = current
               current["search_filter"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_media: CGImage {
+      if let image = cached.with({ $0["search_filter_media"] }) {
+          return image
+      } else {
+          let image = _search_filter_media()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_media"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_files: CGImage {
+      if let image = cached.with({ $0["search_filter_files"] }) {
+          return image
+      } else {
+          let image = _search_filter_files()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_files"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_links: CGImage {
+      if let image = cached.with({ $0["search_filter_links"] }) {
+          return image
+      } else {
+          let image = _search_filter_links()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_links"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_music: CGImage {
+      if let image = cached.with({ $0["search_filter_music"] }) {
+          return image
+      } else {
+          let image = _search_filter_music()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_music"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_add_peer: CGImage {
+      if let image = cached.with({ $0["search_filter_add_peer"] }) {
+          return image
+      } else {
+          let image = _search_filter_add_peer()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_add_peer"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var search_filter_add_peer_active: CGImage {
+      if let image = cached.with({ $0["search_filter_add_peer_active"] }) {
+          return image
+      } else {
+          let image = _search_filter_add_peer_active()
+          _ = cached.modify { current in 
+              var current = current
+              current["search_filter_add_peer_active"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_reply_count_bubble_incoming: CGImage {
+      if let image = cached.with({ $0["chat_reply_count_bubble_incoming"] }) {
+          return image
+      } else {
+          let image = _chat_reply_count_bubble_incoming()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_reply_count_bubble_incoming"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_reply_count_bubble_outgoing: CGImage {
+      if let image = cached.with({ $0["chat_reply_count_bubble_outgoing"] }) {
+          return image
+      } else {
+          let image = _chat_reply_count_bubble_outgoing()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_reply_count_bubble_outgoing"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_reply_count: CGImage {
+      if let image = cached.with({ $0["chat_reply_count"] }) {
+          return image
+      } else {
+          let image = _chat_reply_count()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_reply_count"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_reply_count_overlay: CGImage {
+      if let image = cached.with({ $0["chat_reply_count_overlay"] }) {
+          return image
+      } else {
+          let image = _chat_reply_count_overlay()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_reply_count_overlay"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var channel_comments_bubble: CGImage {
+      if let image = cached.with({ $0["channel_comments_bubble"] }) {
+          return image
+      } else {
+          let image = _channel_comments_bubble()
+          _ = cached.modify { current in 
+              var current = current
+              current["channel_comments_bubble"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var channel_comments_bubble_next: CGImage {
+      if let image = cached.with({ $0["channel_comments_bubble_next"] }) {
+          return image
+      } else {
+          let image = _channel_comments_bubble_next()
+          _ = cached.modify { current in 
+              var current = current
+              current["channel_comments_bubble_next"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var channel_comments_list: CGImage {
+      if let image = cached.with({ $0["channel_comments_list"] }) {
+          return image
+      } else {
+          let image = _channel_comments_list()
+          _ = cached.modify { current in 
+              var current = current
+              current["channel_comments_list"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var channel_comments_overlay: CGImage {
+      if let image = cached.with({ $0["channel_comments_overlay"] }) {
+          return image
+      } else {
+          let image = _channel_comments_overlay()
+          _ = cached.modify { current in 
+              var current = current
+              current["channel_comments_overlay"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_replies_avatar: CGImage {
+      if let image = cached.with({ $0["chat_replies_avatar"] }) {
+          return image
+      } else {
+          let image = _chat_replies_avatar()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_replies_avatar"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var group_selection_foreground: CGImage {
+      if let image = cached.with({ $0["group_selection_foreground"] }) {
+          return image
+      } else {
+          let image = _group_selection_foreground()
+          _ = cached.modify { current in 
+              var current = current
+              current["group_selection_foreground"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var group_selection_foreground_bubble_incoming: CGImage {
+      if let image = cached.with({ $0["group_selection_foreground_bubble_incoming"] }) {
+          return image
+      } else {
+          let image = _group_selection_foreground_bubble_incoming()
+          _ = cached.modify { current in 
+              var current = current
+              current["group_selection_foreground_bubble_incoming"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var group_selection_foreground_bubble_outgoing: CGImage {
+      if let image = cached.with({ $0["group_selection_foreground_bubble_outgoing"] }) {
+          return image
+      } else {
+          let image = _group_selection_foreground_bubble_outgoing()
+          _ = cached.modify { current in 
+              var current = current
+              current["group_selection_foreground_bubble_outgoing"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_pinned_list: CGImage {
+      if let image = cached.with({ $0["chat_pinned_list"] }) {
+          return image
+      } else {
+          let image = _chat_pinned_list()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_pinned_list"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_pinned_message: CGImage {
+      if let image = cached.with({ $0["chat_pinned_message"] }) {
+          return image
+      } else {
+          let image = _chat_pinned_message()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_pinned_message"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_pinned_message_bubble_incoming: CGImage {
+      if let image = cached.with({ $0["chat_pinned_message_bubble_incoming"] }) {
+          return image
+      } else {
+          let image = _chat_pinned_message_bubble_incoming()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_pinned_message_bubble_incoming"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_pinned_message_bubble_outgoing: CGImage {
+      if let image = cached.with({ $0["chat_pinned_message_bubble_outgoing"] }) {
+          return image
+      } else {
+          let image = _chat_pinned_message_bubble_outgoing()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_pinned_message_bubble_outgoing"] = image
+              return current
+          }
+          return image
+      }
+  }
+  var chat_pinned_message_overlay_bubble: CGImage {
+      if let image = cached.with({ $0["chat_pinned_message_overlay_bubble"] }) {
+          return image
+      } else {
+          let image = _chat_pinned_message_overlay_bubble()
+          _ = cached.modify { current in 
+              var current = current
+              current["chat_pinned_message_overlay_bubble"] = image
               return current
           }
           return image
@@ -7333,12 +7684,15 @@ final class TelegramIconsTheme {
   private let _chat_failed_scroller_active: ()->CGImage
   private let _poll_quiz_unselected: ()->CGImage
   private let _poll_selected: ()->CGImage
+  private let _poll_selection: ()->CGImage
   private let _poll_selected_correct: ()->CGImage
   private let _poll_selected_incorrect: ()->CGImage
   private let _poll_selected_incoming: ()->CGImage
+  private let _poll_selection_incoming: ()->CGImage
   private let _poll_selected_correct_incoming: ()->CGImage
   private let _poll_selected_incorrect_incoming: ()->CGImage
   private let _poll_selected_outgoing: ()->CGImage
+  private let _poll_selection_outgoing: ()->CGImage
   private let _poll_selected_correct_outgoing: ()->CGImage
   private let _poll_selected_incorrect_outgoing: ()->CGImage
   private let _chat_filter_edit: ()->CGImage
@@ -7424,7 +7778,31 @@ final class TelegramIconsTheme {
   private let _call_tooltip_micro_off: ()->CGImage
   private let _call_screen_sharing: ()->CGImage
   private let _call_screen_sharing_active: ()->CGImage
+  private let _call_screen_settings: ()->CGImage
   private let _search_filter: ()->CGImage
+  private let _search_filter_media: ()->CGImage
+  private let _search_filter_files: ()->CGImage
+  private let _search_filter_links: ()->CGImage
+  private let _search_filter_music: ()->CGImage
+  private let _search_filter_add_peer: ()->CGImage
+  private let _search_filter_add_peer_active: ()->CGImage
+  private let _chat_reply_count_bubble_incoming: ()->CGImage
+  private let _chat_reply_count_bubble_outgoing: ()->CGImage
+  private let _chat_reply_count: ()->CGImage
+  private let _chat_reply_count_overlay: ()->CGImage
+  private let _channel_comments_bubble: ()->CGImage
+  private let _channel_comments_bubble_next: ()->CGImage
+  private let _channel_comments_list: ()->CGImage
+  private let _channel_comments_overlay: ()->CGImage
+  private let _chat_replies_avatar: ()->CGImage
+  private let _group_selection_foreground: ()->CGImage
+  private let _group_selection_foreground_bubble_incoming: ()->CGImage
+  private let _group_selection_foreground_bubble_outgoing: ()->CGImage
+  private let _chat_pinned_list: ()->CGImage
+  private let _chat_pinned_message: ()->CGImage
+  private let _chat_pinned_message_bubble_incoming: ()->CGImage
+  private let _chat_pinned_message_bubble_outgoing: ()->CGImage
+  private let _chat_pinned_message_overlay_bubble: ()->CGImage
 
   init(
       dialogMuteImage: @escaping()->CGImage,
@@ -7865,12 +8243,15 @@ final class TelegramIconsTheme {
       chat_failed_scroller_active: @escaping()->CGImage,
       poll_quiz_unselected: @escaping()->CGImage,
       poll_selected: @escaping()->CGImage,
+      poll_selection: @escaping()->CGImage,
       poll_selected_correct: @escaping()->CGImage,
       poll_selected_incorrect: @escaping()->CGImage,
       poll_selected_incoming: @escaping()->CGImage,
+      poll_selection_incoming: @escaping()->CGImage,
       poll_selected_correct_incoming: @escaping()->CGImage,
       poll_selected_incorrect_incoming: @escaping()->CGImage,
       poll_selected_outgoing: @escaping()->CGImage,
+      poll_selection_outgoing: @escaping()->CGImage,
       poll_selected_correct_outgoing: @escaping()->CGImage,
       poll_selected_incorrect_outgoing: @escaping()->CGImage,
       chat_filter_edit: @escaping()->CGImage,
@@ -7956,7 +8337,31 @@ final class TelegramIconsTheme {
       call_tooltip_micro_off: @escaping()->CGImage,
       call_screen_sharing: @escaping()->CGImage,
       call_screen_sharing_active: @escaping()->CGImage,
-      search_filter: @escaping()->CGImage
+      call_screen_settings: @escaping()->CGImage,
+      search_filter: @escaping()->CGImage,
+      search_filter_media: @escaping()->CGImage,
+      search_filter_files: @escaping()->CGImage,
+      search_filter_links: @escaping()->CGImage,
+      search_filter_music: @escaping()->CGImage,
+      search_filter_add_peer: @escaping()->CGImage,
+      search_filter_add_peer_active: @escaping()->CGImage,
+      chat_reply_count_bubble_incoming: @escaping()->CGImage,
+      chat_reply_count_bubble_outgoing: @escaping()->CGImage,
+      chat_reply_count: @escaping()->CGImage,
+      chat_reply_count_overlay: @escaping()->CGImage,
+      channel_comments_bubble: @escaping()->CGImage,
+      channel_comments_bubble_next: @escaping()->CGImage,
+      channel_comments_list: @escaping()->CGImage,
+      channel_comments_overlay: @escaping()->CGImage,
+      chat_replies_avatar: @escaping()->CGImage,
+      group_selection_foreground: @escaping()->CGImage,
+      group_selection_foreground_bubble_incoming: @escaping()->CGImage,
+      group_selection_foreground_bubble_outgoing: @escaping()->CGImage,
+      chat_pinned_list: @escaping()->CGImage,
+      chat_pinned_message: @escaping()->CGImage,
+      chat_pinned_message_bubble_incoming: @escaping()->CGImage,
+      chat_pinned_message_bubble_outgoing: @escaping()->CGImage,
+      chat_pinned_message_overlay_bubble: @escaping()->CGImage
   ) {
       self._dialogMuteImage = dialogMuteImage
       self._dialogMuteImageSelected = dialogMuteImageSelected
@@ -8396,12 +8801,15 @@ final class TelegramIconsTheme {
       self._chat_failed_scroller_active = chat_failed_scroller_active
       self._poll_quiz_unselected = poll_quiz_unselected
       self._poll_selected = poll_selected
+      self._poll_selection = poll_selection
       self._poll_selected_correct = poll_selected_correct
       self._poll_selected_incorrect = poll_selected_incorrect
       self._poll_selected_incoming = poll_selected_incoming
+      self._poll_selection_incoming = poll_selection_incoming
       self._poll_selected_correct_incoming = poll_selected_correct_incoming
       self._poll_selected_incorrect_incoming = poll_selected_incorrect_incoming
       self._poll_selected_outgoing = poll_selected_outgoing
+      self._poll_selection_outgoing = poll_selection_outgoing
       self._poll_selected_correct_outgoing = poll_selected_correct_outgoing
       self._poll_selected_incorrect_outgoing = poll_selected_incorrect_outgoing
       self._chat_filter_edit = chat_filter_edit
@@ -8487,6 +8895,30 @@ final class TelegramIconsTheme {
       self._call_tooltip_micro_off = call_tooltip_micro_off
       self._call_screen_sharing = call_screen_sharing
       self._call_screen_sharing_active = call_screen_sharing_active
+      self._call_screen_settings = call_screen_settings
       self._search_filter = search_filter
+      self._search_filter_media = search_filter_media
+      self._search_filter_files = search_filter_files
+      self._search_filter_links = search_filter_links
+      self._search_filter_music = search_filter_music
+      self._search_filter_add_peer = search_filter_add_peer
+      self._search_filter_add_peer_active = search_filter_add_peer_active
+      self._chat_reply_count_bubble_incoming = chat_reply_count_bubble_incoming
+      self._chat_reply_count_bubble_outgoing = chat_reply_count_bubble_outgoing
+      self._chat_reply_count = chat_reply_count
+      self._chat_reply_count_overlay = chat_reply_count_overlay
+      self._channel_comments_bubble = channel_comments_bubble
+      self._channel_comments_bubble_next = channel_comments_bubble_next
+      self._channel_comments_list = channel_comments_list
+      self._channel_comments_overlay = channel_comments_overlay
+      self._chat_replies_avatar = chat_replies_avatar
+      self._group_selection_foreground = group_selection_foreground
+      self._group_selection_foreground_bubble_incoming = group_selection_foreground_bubble_incoming
+      self._group_selection_foreground_bubble_outgoing = group_selection_foreground_bubble_outgoing
+      self._chat_pinned_list = chat_pinned_list
+      self._chat_pinned_message = chat_pinned_message
+      self._chat_pinned_message_bubble_incoming = chat_pinned_message_bubble_incoming
+      self._chat_pinned_message_bubble_outgoing = chat_pinned_message_bubble_outgoing
+      self._chat_pinned_message_overlay_bubble = chat_pinned_message_overlay_bubble
   }
 }

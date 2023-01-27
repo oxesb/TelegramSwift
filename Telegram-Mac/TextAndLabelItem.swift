@@ -48,15 +48,16 @@ class TextAndLabelItem: GeneralRowItem {
     }
     
     let moreLayout: TextViewLayout
-    
-    init(_ initialSize:NSSize, stableId:AnyHashable, label:String, labelColor: NSColor = theme.colors.accent, text:String, context: AccountContext, viewType: GeneralViewType = .legacy, detectLinks:Bool = false, isTextSelectable:Bool = true, callback:@escaping ()->Void = {}, openInfo:((PeerId, Bool, MessageId?, ChatInitialAction?)->Void)? = nil, hashtag:((String)->Void)? = nil, selectFullWord: Bool = false, canCopy: Bool = true) {
+    let copyMenuText: String
+    init(_ initialSize:NSSize, stableId:AnyHashable, label:String, copyMenuText: String, labelColor: NSColor = theme.colors.accent, text:String, context: AccountContext, viewType: GeneralViewType = .legacy, detectLinks:Bool = false, onlyInApp: Bool = false, isTextSelectable:Bool = true, callback:@escaping ()->Void = {}, openInfo:((PeerId, Bool, MessageId?, ChatInitialAction?)->Void)? = nil, hashtag:((String)->Void)? = nil, selectFullWord: Bool = false, canCopy: Bool = true) {
         self.callback = callback
         self.isTextSelectable = isTextSelectable
+        self.copyMenuText = copyMenuText
         self.label = NSAttributedString.initialize(string: label, color: labelColor, font: .normal(FontSize.text))
         let attr = NSMutableAttributedString()
         _ = attr.append(string: text.trimmed.fullTrimmed, color: theme.colors.text, font: .normal(.title))
         if detectLinks {
-            attr.detectLinks(type: [.Links, .Hashtags, .Mentions], context: context, color: theme.colors.link, openInfo: openInfo, hashtag: hashtag, applyProxy: { settings in
+            attr.detectLinks(type: [.Links, .Hashtags, .Mentions], onlyInApp: onlyInApp, context: context, color: theme.colors.link, openInfo: openInfo, hashtag: hashtag, applyProxy: { settings in
                 applyExternalProxy(settings, accountManager: context.sharedContext.accountManager)
             })
         }
@@ -138,7 +139,7 @@ class TextAndLabelItem: GeneralRowItem {
         if !canCopy {
             return .single([])
         } else {
-            return .single([ContextMenuItem(L10n.textCopyLabel(self.label.string.components(separatedBy: " ").map{$0.capitalizingFirstLetter()}.joined(separator: " ")), handler: { [weak self] in
+            return .single([ContextMenuItem(self.copyMenuText, handler: { [weak self] in
                 if let strongSelf = self {
                     copyToClipboard(strongSelf.textLayout.attributedString.string)
                 }

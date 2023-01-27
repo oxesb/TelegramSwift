@@ -1055,6 +1055,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1073,6 +1074,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1213,6 +1215,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1232,6 +1235,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1376,6 +1380,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1395,6 +1400,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1409,6 +1415,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1428,6 +1435,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1441,6 +1449,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1460,6 +1469,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1521,6 +1531,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -1539,6 +1550,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.Telegram.SwiftSignalKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

@@ -93,6 +93,12 @@ class CornerView : View {
         }
     }
     
+    var didChangeSuperview: (()->Void)? = nil
+    
+    override func viewDidMoveToSuperview() {
+        didChangeSuperview?()
+    }
+    
     override var backgroundColor: NSColor {
         didSet {
             layer?.backgroundColor = .clear
@@ -101,7 +107,9 @@ class CornerView : View {
     
     override func draw(_ layer: CALayer, in ctx: CGContext) {
         
-        ctx.round(frame.size, .cornerRadius, positionFlags: positionFlags)
+        if let positionFlags = positionFlags {
+            ctx.round(frame.size, positionFlags.isEmpty ? 0 : .cornerRadius, positionFlags: positionFlags)
+        }
         ctx.setFillColor(backgroundColor.cgColor)
         ctx.fill(bounds)
 //        if let positionFlags = positionFlags {
@@ -158,11 +166,11 @@ class SearchTitleBarView : TitledBarView {
         updateLocalizationAndTheme(theme: theme)
     }
     
-    func updateSearchVisibility(_ visible: Bool) {
+    func updateSearchVisibility(_ visible: Bool, animated: Bool = true) {
         if visible {
             self.search.isHidden = false
         }
-        search.change(opacity: visible ? 1 : 0, animated: true, completion: { [weak self] _ in
+        search.change(opacity: visible ? 1 : 0, animated: animated, completion: { [weak self] _ in
             self?.search.isHidden = !visible
         })
     }

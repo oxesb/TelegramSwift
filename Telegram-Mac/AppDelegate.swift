@@ -1,5 +1,5 @@
 import Cocoa
-
+import FFMpegBinding
 import SwiftSignalKit
 import Postbox
 import TelegramCore
@@ -18,10 +18,12 @@ import AppCenterCrashes
 #endif
 
 
+private(set) var appDelegate: AppDelegate?
+
 #if !SHARE
 extension Account {
     var diceCache: DiceCache? {
-        return (NSApp.delegate as? AppDelegate)?.contextValue?.context.diceCache
+        return appDelegate?.contextValue?.context.diceCache
     }
 }
 #endif
@@ -47,7 +49,14 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
         didSet {
             window.delegate = self
             window.isOpaque = true
-            window.initSaver()
+            let notInitial = window.initSaver()
+            
+            if !notInitial {
+                let size = NSMakeSize(700, 550)
+                if let screen = NSScreen.main {
+                    window.setFrame(NSMakeRect((screen.frame.width - size.width) / 2, (screen.frame.height - size.height) / 2, size.width, size.height), display: true)
+                }
+            }
         }
     }
     
@@ -69,6 +78,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
     private var sharedContextOnce: Signal<SharedApplicationContext, NoError> {
         return sharedContextPromise.get() |> take(1) |> deliverOnMainQueue
     }
+    private var sharedApplicationContextValue: SharedApplicationContext?
 
     
     var passlock: Signal<Bool, NoError> {
@@ -103,7 +113,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         
         
-
+        appDelegate = self
         
         initializeSelectManager()
         startLottieCacheCleaner()
@@ -150,7 +160,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
         }
         
         DateUtils.setDateLocalizationFunc ({ key -> String in
-            return _NSLocalizedString(key)
+            return _NSLocalizedString(key!)
         })
         
         setInputLocalizationFunc { (key) -> String in
@@ -183,9 +193,10 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
         
         #if !APP_STORE
             if let secret = Bundle.main.infoDictionary?["APPCENTER_SECRET"] as? String {
-                MSAppCenter.start(secret, withServices: [MSCrashes.self])
+                AppCenter.start(withAppSecret: secret, services: [Crashes.self])
             }
         #endif
+        
         
         
       //  Timer.scheduledTimer(timeInterval: 60 * 60, target: self, selector: #selector(checkUpdates), userInfo: nil, repeats: true)
@@ -202,7 +213,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
         
         MTLogSetEnabled(UserDefaults.standard.bool(forKey: "enablelogs"))
 
-        let logger = Logger(basePath: containerUrl.path + "/logs")
+        let logger = Logger(rootPath: containerUrl.path, basePath: containerUrl.path + "/logs")
         logger.logToConsole = false
         logger.logToFile = UserDefaults.standard.bool(forKey: "enablelogs")
         
@@ -296,8 +307,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
             if let localization = localization {
                 applyUILocalization(localization)
             }
-            
-            
+                        
             updateTheme(with: themeSettings, for: window)
             
             
@@ -439,6 +449,52 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
                 }
                 NSApp.activate(ignoringOtherApps: true)
                 window.deminiaturize(nil)
+            }, navigateToThread: { account, threadId, fromId in
+                if let contextValue = self.contextValue, contextValue.context.account.id == account.id {
+                    
+                    let pushController: (ChatLocation, ChatMode, MessageId, Atomic<ChatLocationContextHolder?>, Bool) -> Void = { chatLocation, mode, messageId, contextHolder, addition in
+                        let navigation = contextValue.context.sharedContext.bindings.rootNavigation()
+                        let controller: ChatController
+                        if addition {
+                            controller = ChatAdditionController(context: contextValue.context, chatLocation: chatLocation, mode: mode, messageId: messageId, initialAction: nil, chatLocationContextHolder: contextHolder)
+                        } else {
+                            controller = ChatController(context: contextValue.context, chatLocation: chatLocation, mode: mode, messageId: messageId, initialAction: nil, chatLocationContextHolder: contextHolder)
+                        }
+                        navigation.push(controller)
+                    }
+                    
+                    let navigation = contextValue.context.sharedContext.bindings.rootNavigation()
+
+                    let currentInChat = navigation.controller is ChatController
+                    let controller = navigation.controller as? ChatController
+
+                    if controller?.chatInteraction.mode.threadId == threadId {
+                        controller?.scrollup()
+                    } else {
+                        
+                        let signal:Signal<ReplyThreadInfo, FetchChannelReplyThreadMessageError> = fetchAndPreloadReplyThreadInfo(context: contextValue.context, subject: .channelPost(threadId))
+                        
+                        _ = showModalProgress(signal: signal |> take(1), for: contextValue.context.window).start(next: { result in
+                            let chatLocation: ChatLocation = .replyThread(result.message)
+                            
+                            let updatedMode: ReplyThreadMode
+                            if result.isChannelPost {
+                                updatedMode = .comments(origin: fromId)
+                            } else {
+                                updatedMode = .replies(origin: fromId)
+                            }
+                            pushController(chatLocation, .replyThread(data: result.message, mode: updatedMode), fromId, result.contextHolder, currentInChat)
+                            
+                        }, error: { error in
+                            
+                        })
+                    }
+                    
+                } else {
+                    sharedContext.switchToAccount(id: account.id, action: .thread(threadId, fromId, necessary: true))
+                }
+                NSApp.activate(ignoringOtherApps: true)
+                window.deminiaturize(nil)
             }, updateCurrectController: {
                 if let contextValue = self.contextValue {
                     contextValue.context.sharedContext.bindings.rootNavigation().controller.updateController()
@@ -449,7 +505,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
             let sharedWakeupManager = SharedWakeupManager(sharedContext: sharedContext, inForeground: self.presentAccountStatus.get())
             let sharedApplicationContext = SharedApplicationContext(sharedContext: sharedContext, notificationManager: sharedNotificationManager, sharedWakeupManager: sharedWakeupManager)
             
-            
+            self.sharedApplicationContextValue = sharedApplicationContext
             
             self.sharedContextPromise.set(accountManager.transaction { transaction -> (SharedApplicationContext, LoggingSettings) in
                 return (sharedApplicationContext, transaction.getSharedData(SharedDataKeys.loggingSettings) as? LoggingSettings ?? LoggingSettings.defaultSettings)
@@ -523,7 +579,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
                               //  let tonContext = StoredTonContext(basePath: account.basePath, postbox: account.postbox, network: account.network, keychain: tonKeychain)
 
                                 let context = AccountContext(sharedContext: sharedApplicationContext.sharedContext, window: window, account: account)
-                                return AuthorizedApplicationContext(window: window, context: context, launchSettings: settings ?? LaunchSettings.defaultSettings)
+                                return AuthorizedApplicationContext(window: window, context: context, launchSettings: settings ?? LaunchSettings.defaultSettings, callSession: sharedContext.getCrossAccountCallSession())
                                 
                             } else {
                                 return nil
@@ -761,53 +817,28 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
             
             NotificationCenter.default.addObserver(self, selector: #selector(self.windiwDidChangeBackingProperties), name: NSWindow.didChangeBackingPropertiesNotification, object: window)
             
-            
-            
-            let fontSizes:[Int32] = [11, 12, 13, 14, 15, 16, 17, 18]
-            
-//            
-//            window.set(handler: { () -> KeyHandlerResult in
-//                _ = updateThemeInteractivetly(accountManager: accountManager, f: { current -> ThemePaletteSettings in
-//                    if let index = fontSizes.firstIndex(of: Int32(current.fontSize)) {
-//                        if index == fontSizes.count - 1 {
-//                            return current
-//                        } else {
-//                            return current.withUpdatedFontSize(CGFloat(fontSizes[index + 1]))
-//                        }
-//                    } else {
-//                        return current
-//                    }
-//                }).start()
-//                if let index = fontSizes.firstIndex(of: Int32(theme.fontSize)), index == fontSizes.count - 1 {
-//                    return .rejected
-//                }
-//                return .invoked
-//            }, with: self, for: .Equal, modifierFlags: [.command])
-//            
-//            window.set(handler: { () -> KeyHandlerResult in
-//                _ = updateThemeInteractivetly(accountManager: accountManager, f: { current -> ThemePaletteSettings in
-//                    if let index = fontSizes.firstIndex(of: Int32(current.fontSize)) {
-//                        if index == 0 {
-//                            return current
-//                        } else {
-//                            return current.withUpdatedFontSize(CGFloat(fontSizes[index - 1]))
-//                        }
-//                    } else {
-//                        return current
-//                    }
-//                }).start()
-//                if let index = fontSizes.firstIndex(of: Int32(theme.fontSize)), index == 0 {
-//                    return .rejected
-//                }
-//                return  .invoked
-//            }, with: self, for: .Minus, modifierFlags: [.command])
-            
             self.window.contentView?.wantsLayer = true
+            
+            sharedWakeupManager.onSleepValueUpdated = { value in
+                self.updatePeerPresence()
+            }
+            sharedNotificationManager.didUpdateLocked = { value in
+                self.updatePeerPresence()
+            }
         })
-        
         
     }
     
+    
+    private func updatePeerPresence() {
+        if let sharedApplicationContextValue = sharedApplicationContextValue {
+            let isOnline = NSApp.isActive && NSApp.isRunning && !NSApp.isHidden && !sharedApplicationContextValue.sharedWakeupManager.isSleeping && !sharedApplicationContextValue.notificationManager._lockedValue.screenLock && !sharedApplicationContextValue.notificationManager._lockedValue.passcodeLock
+            #if DEBUG
+            NSLog("accountIsOnline: \(isOnline)")
+            #endif
+            presentAccountStatus.set(.single(isOnline) |> then(.single(isOnline) |> delay(50, queue: Queue.concurrentBackgroundQueue())) |> restart)
+        }
+    }
     
     @objc public func windiwDidChangeBackingProperties() {
         _ = System.scaleFactor.swap(window.backingScaleFactor)
@@ -903,13 +934,13 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
     }
     
     func applicationDidBecomeActive(_ notification: Notification) {
-        presentAccountStatus.set(.single(true) |> then(.single(true) |> delay(50, queue: Queue.concurrentBackgroundQueue())) |> restart)
+        updatePeerPresence()
     }
     
 
     
     func applicationDidHide(_ notification: Notification) {
-        presentAccountStatus.set(.single(false))
+        updatePeerPresence()
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -979,8 +1010,9 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
     
     
     
+    
     func applicationDidResignActive(_ notification: Notification) {
-        presentAccountStatus.set(.single(false))
+        updatePeerPresence()
         if viewer != nil {
             viewer?.window.orderOut(nil)
         }

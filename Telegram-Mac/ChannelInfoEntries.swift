@@ -201,7 +201,7 @@ class ChannelInfoArguments : PeerInfoArguments {
     }
     
     func visibilitySetup() {
-        let setup = ChannelVisibilityController(context, peerId: peerId)
+        let setup = ChannelVisibilityController(context, peerId: peerId, isChannel: true)
         _ = (setup.onComplete.get() |> deliverOnMainQueue).start(next: { [weak self] _ in
             self?.pullNavigation()?.back()
         })
@@ -534,14 +534,14 @@ enum ChannelInfoEntry: PeerInfoEntry {
                     if !lhsNotificationSettings.isEqual(to: rhsNotificationSettings) {
                         return false
                     }
-                } else if (lhsNotificationSettings == nil) != (rhsNotificationSettings == nil) {
+                } else if (lhsNotificationSettings != nil) != (rhsNotificationSettings != nil) {
                     return false
                 }
                 if let lhsCachedData = lhsCachedData, let rhsCachedData = rhsCachedData {
                     if !lhsCachedData.isEqual(to: rhsCachedData) {
                         return false
                     }
-                } else if (lhsCachedData == nil) != (rhsCachedData != nil) {
+                } else if (lhsCachedData != nil) != (rhsCachedData != nil) {
                     return false
                 }
                 return true
@@ -814,9 +814,9 @@ enum ChannelInfoEntry: PeerInfoEntry {
         case let .info(_, peerView, editable, updatingPhotoState, viewType):
             return PeerInfoHeadItem(initialSize, stableId: stableId.hashValue, context: arguments.context, arguments: arguments, peerView:peerView, viewType: viewType, editing: editable, updatingPhotoState: updatingPhotoState, updatePhoto: arguments.updateChannelPhoto)
         case let .scam(_, text, viewType):
-            return TextAndLabelItem(initialSize, stableId:stableId.hashValue, label: L10n.peerInfoScam, labelColor: theme.colors.redUI, text: text, context: arguments.context, viewType: viewType, detectLinks:false)
+            return TextAndLabelItem(initialSize, stableId:stableId.hashValue, label: L10n.peerInfoScam, copyMenuText: L10n.textCopy, labelColor: theme.colors.redUI, text: text, context: arguments.context, viewType: viewType, detectLinks:false)
         case let .about(_, text, viewType):
-            return TextAndLabelItem(initialSize, stableId: stableId.hashValue, label: L10n.peerInfoInfo, text:text, context: arguments.context, viewType: viewType, detectLinks:true, openInfo: { peerId, toChat, postId, _ in
+            return TextAndLabelItem(initialSize, stableId: stableId.hashValue, label: L10n.peerInfoInfo, copyMenuText: L10n.textCopyLabelAbout, text:text, context: arguments.context, viewType: viewType, detectLinks:true, openInfo: { peerId, toChat, postId, _ in
                 if toChat {
                     arguments.peerChat(peerId, postId: postId)
                 } else {
@@ -824,7 +824,7 @@ enum ChannelInfoEntry: PeerInfoEntry {
                 }
             }, hashtag: arguments.context.sharedContext.bindings.globalSearch)
         case let .userName(_, value, viewType):
-            return  TextAndLabelItem(initialSize, stableId: stableId.hashValue, label: L10n.peerInfoSharelink, text: value, context: arguments.context, viewType: viewType, isTextSelectable:false, callback: arguments.share, selectFullWord: true)
+            return  TextAndLabelItem(initialSize, stableId: stableId.hashValue, label: L10n.peerInfoSharelink, copyMenuText: L10n.textCopyLabelShareLink, text: value, context: arguments.context, viewType: viewType, isTextSelectable:false, callback: arguments.share, selectFullWord: true)
         case let .report(_, viewType):
             return GeneralInteractedRowItem(initialSize, stableId: stableId.hashValue, name: L10n.peerInfoReport, type: .none, viewType: viewType, action: { () in
                 arguments.report()
@@ -927,7 +927,7 @@ func channelInfoEntries(view: PeerView, arguments:PeerInfoArguments, mediaTabsDa
                     entries.append(.link(sectionId: .type, addressName: channel.username ?? "", viewType: .firstItem))
                 }
                 let group: Peer?
-                if let cachedData = view.cachedData as? CachedChannelData, let linkedDiscussionPeerId = cachedData.linkedDiscussionPeerId {
+                if let cachedData = view.cachedData as? CachedChannelData, let linkedDiscussionPeerId = cachedData.linkedDiscussionPeerId.peerId {
                     group = view.peers[linkedDiscussionPeerId]
                 } else {
                     group = nil

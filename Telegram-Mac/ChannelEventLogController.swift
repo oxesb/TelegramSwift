@@ -146,10 +146,11 @@ class ChannelEventLogView : View {
     
     override func updateLocalizationAndTheme(theme: PresentationTheme) {
         super.updateLocalizationAndTheme(theme: theme)
+        self.backgroundColor = theme.colors.chatBackground
         whatButton.set(color: theme.colors.accent, for: .Normal)
         whatButton.set(background: theme.colors.grayTransparent, for: .Highlight)
         whatButton.set(background: theme.colors.background, for: .Normal)
-        emptyTextView.backgroundColor = theme.colors.background
+        emptyTextView.backgroundColor = theme.colors.chatBackground
         separator.backgroundColor =  theme.colors.border
     }
     
@@ -226,6 +227,7 @@ private struct EventLogTableTransition {
     let state:ChannelEventFilterState
     let maxId:AdminLogEventId
     let eventLog:AdminLogEventsResult
+    let fullyLoaded: Bool
 }
 
 extension AdminLogEventsResult {
@@ -265,7 +267,9 @@ extension AdminLogEventsResult {
                     .canPostMessages,
                     .canEditMessages,
                     .canDeleteMessages,
-                    .canAddAdmins
+                    .canAddAdmins,
+                    .canBeAnonymous
+                    
                 ]
             case .group:
                 maskRightsFlags = .groupSpecific
@@ -275,7 +279,8 @@ extension AdminLogEventsResult {
                     .canBanUsers,
                     .canInviteUsers,
                     .canPinMessages,
-                    .canAddAdmins
+                    .canAddAdmins,
+                    .canBeAnonymous
                 ]
                 
             }
@@ -299,7 +304,7 @@ private func eventLogItems(_ result:AdminLogEventsResult, initialSize: NSSize, c
                 items.append(item)
             }
         case let .deleteMessage(message):
-            items.append(ChatRowItem.item(initialSize, from: .MessageEntry(message.withUpdatedStableId(arc4random()), MessageIndex(message), true, .list, .Full(rank: nil), nil, ChatHistoryEntryData(nil, MessageEntryAdditionalData(), AutoplayMediaPreferences.defaultSettings)), interaction: chatInteraction, theme: theme))
+            items.append(ChatRowItem.item(initialSize, from: .MessageEntry(message.withUpdatedStableId(arc4random()).withUpdatedTimestamp(event.date), MessageIndex(message), true, .list, .Full(rank: nil), nil, ChatHistoryEntryData(nil, MessageEntryAdditionalData(), AutoplayMediaPreferences.defaultSettings)), interaction: chatInteraction, theme: theme))
         case let .updatePinned(message):
             if let message = message?.withUpdatedStableId(arc4random()) {
                 items.append(ChatRowItem.item(initialSize, from: .MessageEntry(message, MessageIndex(message), true, .list, .Full(rank: nil), nil, ChatHistoryEntryData(nil, MessageEntryAdditionalData(), AutoplayMediaPreferences.defaultSettings)), interaction: chatInteraction, theme: theme))
@@ -428,6 +433,10 @@ class ChannelEventLogController: TelegramGenericViewController<ChannelEventLogVi
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        genericView.tableView.getBackgroundColor = {
+            return theme.colors.chatBackground
+        }
+        
         let searchState = self.searchState
         let context = self.context
         
@@ -467,7 +476,7 @@ class ChannelEventLogController: TelegramGenericViewController<ChannelEventLogVi
 
             let state = values.1.1
             let searchState = values.0
-            return context.account.postbox.transaction { $0.getPeer(peerId) } |> map { (nil, $0) } |> then (combineLatest(channelAdminLogEvents(postbox: context.account.postbox, network: context.account.network, peerId: peerId, maxId: values.1.0, minId: -1, limit: 50, query: searchState.request, filter: state.selectedFlags, admins: state.selectedAdmins) |> `catch` { _ in .complete()} |> deliverOnPrepareQueue, appearanceSignal |> deliverOnPrepareQueue) |> map { result, appearance -> (EventLogTableTransition, [Peer]) in
+            return combineLatest(channelAdminLogEvents(postbox: context.account.postbox, network: context.account.network, peerId: peerId, maxId: values.1.0, minId: -1, limit: 50, query: searchState.request, filter: state.selectedFlags, admins: state.selectedAdmins) |> `catch` { _ in .complete()} |> deliverOnPrepareQueue, appearanceSignal |> deliverOnPrepareQueue) |> map { result, appearance -> (EventLogTableTransition, [Peer]) in
                 
                 
                 let maxId = result.events.min(by: { (lhs, rhs) -> Bool in
@@ -478,9 +487,10 @@ class ChannelEventLogController: TelegramGenericViewController<ChannelEventLogVi
                 
                 let items = eventLogItems(result, initialSize: initialSize.modify({$0}), chatInteraction: chatInteraction)
                 let _previousState = previousState.swap(state)
+                
                 let _previousAppearance = previousAppearance.swap(appearance)
                 let _previousSearchState = previousSearchState.swap(searchState)
-                return (EventLogTableTransition(result: items, addition: _previousState == state && _previousSearchState == searchState && _previousAppearance == appearance, state: state, maxId: maxId, eventLog: result), result.peers.map {$0.value})
+                return (EventLogTableTransition(result: items, addition: _previousSearchState == searchState && (_previousState?.selectedFlags == state.selectedFlags && _previousState?.selectedAdmins == state.selectedAdmins), state: state, maxId: maxId, eventLog: result, fullyLoaded: result.events.count < 50), result.peers.map {$0.value})
                 
                 }  |> mapToSignal { transition, peers in
                     return context.account.postbox.transaction { transaction in
@@ -489,46 +499,60 @@ class ChannelEventLogController: TelegramGenericViewController<ChannelEventLogVi
                         })
                         return (Optional(transition), transaction.getPeer(peerId))
                     }
-                })
+                }
             }
             |> deliverOnMainQueue).start(next: { [weak self] transition, peer in
                 if let tableView = self?.genericView.tableView {
+                    tableView.beginTableUpdates()
                     if let transition = transition, let peer = peer {
                         if !transition.addition {
                             tableView.removeAll()
-                            _ = tableView.addItem(item: GeneralRowItem(initialSize.modify{$0}, height: 20, stableId: arc4random()))
+                            _ = tableView.addItem(item: GeneralRowItem(initialSize.modify{$0}, height: 20, stableId: arc4random(), backgroundColor: theme.colors.chatBackground))
                         }
                         tableView.insert(items: transition.result, at: tableView.count)
                         self?.genericView.updateState(tableView.isEmpty ? (transition.state.isEmpty && previousSearchState.modify({$0}).request.isEmpty ? .empty(peer.isChannel ? tr(L10n.channelEventLogEmptyText) : tr(L10n.groupEventLogEmptyText)) : .empty(tr(L10n.channelEventLogEmptySearch))) : .history)
                     } else {
                         self?.genericView.updateState(.loading)
                         self?.genericView.tableView.removeAll()
-                        _ = tableView.addItem(item: GeneralRowItem(initialSize.modify{$0}, height: 20, stableId: arc4random()))
+                        _ = tableView.addItem(item: GeneralRowItem(initialSize.modify{$0}, height: 20, stableId: arc4random(), backgroundColor: theme.colors.chatBackground))
                     }
-                    
+                    tableView.endTableUpdates()
                     tableView.resetScrollNotifies()
-                    _ = currentMaxId.swap(transition?.maxId ?? -1)
+                    if let transition = transition {
+                        _ = currentMaxId.swap(transition.fullyLoaded ? -1 : transition.maxId)
+                    } else {
+                        
+                    }
                 }
             }))
         
-//        genericView.tableView.setScrollHandler { [weak self] scroll in
-//            if let strongSelf = self {
-//                switch scroll.direction {
-//                case .bottom:
-//                    let signal = strongSelf.history.get() |> take(1) |> map { (_, state) in
-//                        (currentMaxId.with { $0 }, state)
-//                    }
-//                    _ = signal.start(next: { [weak strongSelf] data in
-//                        strongSelf?.history.set(.sing)
-//                    })
-//
-//                default:
-//                    break
-//                }
-//            }
-//        }
+        genericView.tableView.setScrollHandler { [weak self] scroll in
+            if let strongSelf = self {
+                switch scroll.direction {
+                case .bottom:
+                    let signal = strongSelf.history.get() |> take(1) |> map { (_, state) in
+                        (currentMaxId.with { $0 }, state)
+                    }
+                    _ = signal.start(next: { [weak strongSelf] data in
+                        if data.0 != -1 {
+                            strongSelf?.history.set(.single((data.0, data.1)))
+                        }
+                    })
+
+                default:
+                    break
+                }
+            }
+        }
+        
+        
+        self.genericView.updateState(.loading)
+        self.genericView.tableView.removeAll()
+        _ = self.genericView.tableView.addItem(item: GeneralRowItem(initialSize.modify{$0}, height: 20, stableId: arc4random(), backgroundColor: theme.colors.chatBackground))
         
         readyOnce()
+
+        
         history.set(.single((0, ChannelEventFilterState())))
         _ = state.swap(ChannelEventFilterState())
     }

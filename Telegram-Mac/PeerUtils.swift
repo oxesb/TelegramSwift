@@ -12,6 +12,12 @@ import SyncCore
 import Postbox
 import SyncCore
 
+let prod_repliesPeerId: PeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: 1271266957)
+let test_repliesPeerId: PeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: 708513)
+
+
+var repliesPeerId: PeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: 1271266957)
+
 
 extension ChatListFilterPeerCategories {
    
@@ -137,9 +143,12 @@ extension Peer {
     }
     
     
-
     
-    var canSendMessage: Bool {
+    
+    func canSendMessage(_ isisThreadMode: Bool = false) -> Bool {
+        if self.id == repliesPeerId {
+            return false
+        }
         if let channel = self as? TelegramChannel {
             if case .broadcast(_) = channel.info {
                 return channel.hasPermission(.sendMessages)
@@ -147,7 +156,12 @@ extension Peer {
                 switch channel.participationStatus {
                 case .member:
                     return !channel.hasBannedRights(.banSendMessages)
-                default:
+                case .left:
+                    if isisThreadMode {
+                        return !channel.hasBannedRights(.banSendMessages)
+                    }
+                    return false
+                case .kicked:
                     return false
                 }
             }

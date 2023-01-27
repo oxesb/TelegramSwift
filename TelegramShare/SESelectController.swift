@@ -191,9 +191,7 @@ class ShareObject {
     func perform(to entries:[PeerId], view: NSView) {
         
         var signals:[Signal<Float, NoError>] = []
-        
-       
-        
+                
         var needWaitAsync = false
         var k:Int = 0
         let total = shareContext.inputItems.reduce(0) { (current, item) -> Int in
@@ -236,6 +234,8 @@ class ShareObject {
             }
         }
         
+        NSLog("\(entries), \(shareContext.inputItems)")
+        
         for peerId in entries {
             for j in 0 ..< shareContext.inputItems.count {
                 if let item = shareContext.inputItems[j] as? NSExtensionItem {
@@ -253,10 +253,15 @@ class ShareObject {
                                     } else {
                                         signals.append(self.sendMedia(url, to:peerId))
                                     }
-                                    k += 1
-                                    requestIfNeeded()
+                                } else if let data = coding as? Data, let string = String(data: data, encoding: .utf8), let url = URL(string: string) {
+                                    if !url.isFileURL {
+                                        signals.append(self.sendText(url.absoluteString, to:peerId))
+                                    } else {
+                                        signals.append(self.sendMedia(url, to:peerId))
+                                    }
                                 }
-                               
+                                k += 1
+                                requestIfNeeded()
                             })
                             if k != total {
                                 attachments[i].loadItem(forTypeIdentifier: kUTTypeImage as String, options: nil, completionHandler: { (coding, error) in
@@ -531,7 +536,7 @@ class SESelectController: GenericViewController<ShareModalView>, Notifable {
                             case let .MessageEntry(id, _, _, _, _, renderedPeer, _, _, _, _):
                                 if let peer = renderedPeer.chatMainPeer {
                                     if !fromSetIds.contains(peer.id), contains[peer.id] == nil {
-                                        if peer.canSendMessage {
+                                        if peer.canSendMessage(false) {
                                             entries.append(.plain(peer,id))
                                             contains[peer.id] = peer
                                         }
@@ -604,7 +609,7 @@ class SESelectController: GenericViewController<ShareModalView>, Notifable {
                    
                     
                     for peer in peers {
-                        if peer.canSendMessage, !contains.contains(peer.id) {
+                        if peer.canSendMessage(false), !contains.contains(peer.id) {
                             let index = MessageIndex(id: MessageId(peerId: peer.id, namespace: 1, id: i), timestamp: i)
                             entries.append(.plain(peer, ChatListIndex(pinningIndex: nil, messageIndex: index)))
                             contains.insert(peer.id)

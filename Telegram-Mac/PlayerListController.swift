@@ -44,7 +44,7 @@ private enum PlayerListEntry: TableItemListNodeEntry {
     func item(_ arguments: PlayerListArguments, initialSize: NSSize) -> TableRowItem {
         switch self {
         case let .message(_, message):
-            return PeerMediaMusicRowItem(initialSize, arguments.chatInteraction, .messageEntry(message, .defaultSettings, .singleItem),  isCompactPlayer: true)
+            return PeerMediaMusicRowItem(initialSize, arguments.chatInteraction, .messageEntry(message, [], .defaultSettings, .singleItem),  isCompactPlayer: true)
         }
     }
     
@@ -94,10 +94,13 @@ class PlayerListController: TableViewController {
     private let chatInteraction: ChatInteraction
     private let disposable = MetaDisposable()
     private let messageIndex: MessageIndex
-    init(audioPlayer: InlineAudioPlayerView, context: AccountContext, currentContext: AccountContext, messageIndex: MessageIndex) {
+    private let messages: [Message]
+    init(audioPlayer: InlineAudioPlayerView, context: AccountContext, currentContext: AccountContext, messageIndex: MessageIndex, messages: [Message] = []) {
         self.chatInteraction = ChatInteraction(chatLocation: .peer(messageIndex.id.peerId), context: context)
         self.messageIndex = messageIndex
         self.audioPlayer = audioPlayer
+        
+        self.messages = messages
         super.init(context)
         
         
@@ -112,7 +115,7 @@ class PlayerListController: TableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        let chatLocationInput = (self.audioPlayer.controller as? APChatController)?.chatLocationInput
         genericView.getBackgroundColor = {
             return theme.colors.background
         }
@@ -124,7 +127,7 @@ class PlayerListController: TableViewController {
                 
                 guard let `self` = self else {return .complete()}
                 
-                return chatHistoryViewForLocation(location, account: self.chatInteraction.context.account, chatLocation: self.chatInteraction.chatLocation, fixedCombinedReadStates: nil, tagMask: [.music], additionalData: []) |> mapToQueue { view -> Signal<(PeerMediaUpdate, TableScrollState?), NoError> in
+                return chatHistoryViewForLocation(location, context: self.chatInteraction.context, chatLocation: self.chatInteraction.chatLocation, fixedCombinedReadStates: nil, tagMask: [.music], additionalData: [], chatLocationInput: chatLocationInput) |> mapToQueue { view -> Signal<(PeerMediaUpdate, TableScrollState?), NoError> in
                     switch view {
                     case .Loading:
                         return .single((PeerMediaUpdate(), nil))
@@ -133,8 +136,8 @@ class PlayerListController: TableViewController {
                         for entry in view.entries {
                              messages.append(entry.message)
                         }
-                        var laterId = view.laterId
-                        var earlierId = view.earlierId
+                        let laterId = view.laterId
+                        let earlierId = view.earlierId
 
                         var state: TableScrollState?
                         if let scroll = scroll {
@@ -158,16 +161,27 @@ class PlayerListController: TableViewController {
         
         let arguments = PlayerListArguments(chatInteraction: chatInteraction)
         
-        let historyViewTransition = historyViewUpdate |> deliverOnPrepareQueue |> map { update, scroll -> TableUpdateTransition in
-            let animated = animated.swap(true)
-            let scroll:TableScrollState = scroll ?? (animated ? .none(nil) : .saveVisible(.upper))
-            
+        let historyViewTransition: Signal<TableUpdateTransition, NoError>
+        if messages.isEmpty {
+            historyViewTransition = historyViewUpdate |> deliverOnPrepareQueue |> map { update, scroll -> TableUpdateTransition in
+                let animated = animated.swap(true)
+                let scroll:TableScrollState = scroll ?? (animated ? .none(nil) : .saveVisible(.upper))
+                
+                let entries = playerAudioEntries(update, timeDifference: context.timeDifference)
+                _ = updateView.swap(update)
+                
+                return preparedAudioListTransition(from: previous.swap(entries), to: entries, initialSize: NSMakeSize(300, 0), arguments: arguments, animated: animated, scroll: scroll)
+                
+                } |> deliverOnMainQueue
+        } else {
+            let update = PeerMediaUpdate(messages: messages, updateType: .search, laterId: nil, earlierId: nil, automaticDownload: .defaultSettings, searchState: .init(state: .None, request: nil))
             let entries = playerAudioEntries(update, timeDifference: context.timeDifference)
             _ = updateView.swap(update)
-            
-            return preparedAudioListTransition(from: previous.swap(entries), to: entries, initialSize: NSMakeSize(300, 0), arguments: arguments, animated: animated, scroll: scroll)
-            
-        } |> deliverOnMainQueue
+            let transition = preparedAudioListTransition(from: previous.swap(entries), to: entries, initialSize: NSMakeSize(300, 0), arguments: arguments, animated: false, scroll: .none(nil))
+            historyViewTransition = .single(transition)
+        }
+        
+        
         
         
         disposable.set(historyViewTransition.start(next: { [weak self] transition in

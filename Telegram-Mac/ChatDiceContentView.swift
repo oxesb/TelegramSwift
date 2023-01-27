@@ -146,7 +146,7 @@ class ChatDiceContentView: ChatMediaContentView {
         if let media = media, let message = self.parent {
             let item = self.table?.item(stableId: ChatHistoryEntryId.message(message))
             
-            if let item = item as? ChatRowItem, let peer = item.peer, peer.canSendMessage {
+            if let item = item as? ChatRowItem, let peer = item.peer, peer.canSendMessage(item.chatInteraction.mode.isThreadMode) {
                 let text: String
                 
                 switch media.emoji {
@@ -242,11 +242,15 @@ class ChatDiceContentView: ChatMediaContentView {
         
         self.diceState = diceState
         
- 
         
-        
-        let data: Signal<(Data?, TelegramMediaFile), NoError>
-        data = context.diceCache.interactiveSymbolData(baseSymbol: baseSymbol, side: sideSymbol, synchronous: approximateSynchronousValue)
+        let data: Signal<(Data?, TelegramMediaFile), NoError> = context.diceCache.interactiveSymbolData(baseSymbol: baseSymbol, synchronous: approximateSynchronousValue) |> mapToSignal { values in
+            for value in values {
+                if value.0 == sideSymbol {
+                    return .single((value.1, value.2))
+                }
+            }
+            return .never()
+        }
         
         
         self.playerView.isHidden = true

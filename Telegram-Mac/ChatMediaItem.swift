@@ -18,6 +18,12 @@ class ChatMediaLayoutParameters : Equatable {
     var showMedia:(Message)->Void = {_ in }
     var showMessage:(Message)->Void = {_ in }
     
+    var chatLocationInput:()->ChatLocationInput = { fatalError() }
+    var chatMode:ChatMode = .history
+    
+    var getUpdatingMediaProgress:(MessageId)->Signal<Float?, NoError> = { _ in return .single(nil) }
+    var cancelOperation:(Message, Media)->Void = { _, _ in }
+    
     let presentation: ChatMediaPresentation
     let media: Media
     
@@ -157,8 +163,8 @@ class ChatMediaLayoutParameters : Equatable {
         }
     }
     
-    func makeLabelsForWidth(_ width: CGFloat) {
-        
+    @discardableResult func makeLabelsForWidth(_ width: CGFloat) -> CGFloat {
+        return 0
     }
     
 }
@@ -184,9 +190,43 @@ class ChatMediaItem: ChatRowItem {
     let media:Media
 
     
-    var parameters:ChatMediaLayoutParameters?
+    var parameters:ChatMediaLayoutParameters? = nil {
+        didSet {
+            updateParameters()
+        }
+    }
     
-  
+    private func updateParameters() {
+        parameters?.chatLocationInput = chatInteraction.chatLocationInput
+        parameters?.chatMode = chatInteraction.mode
+        
+        parameters?.getUpdatingMediaProgress = { [weak self] messageId in
+            if let media = self?.entry.additionalData.updatingMedia {
+                switch media.media {
+                case .update:
+                    return .single(media.progress)
+                default:
+                    break
+                }
+            }
+            return .single(nil)
+        }
+        
+        
+        
+        parameters?.cancelOperation = { [unowned context, weak self] message, media in
+            if self?.entry.additionalData.updatingMedia != nil {
+                context.account.pendingUpdateMessageManager.cancel(messageId: message.id)
+            } else if let media = media as? TelegramMediaFile {
+                messageMediaFileCancelInteractiveFetch(context: context, messageId: message.id, fileReference: FileMediaReference.message(message: MessageReference(message), media: media))
+                if let resource = media.resource as? LocalFileArchiveMediaResource {
+                    archiver.remove(.resource(resource))
+                }
+            } else if let media = media as? TelegramMediaImage {
+                chatMessagePhotoCancelInteractiveFetch(account: context.account, photo: media)
+            }
+        }
+    }
     
     
     override var topInset:CGFloat {
@@ -247,7 +287,7 @@ class ChatMediaItem: ChatRowItem {
     
     
     override var _defaultHeight: CGFloat {
-        if hasBubble && isBubbleFullFilled && captionLayout == nil {
+        if hasBubble && isBubbleFullFilled && captionLayouts.isEmpty {
             return contentOffset.y + defaultContentInnerInset - mediaBubbleCornerInset * 2 - 1
         }
         
@@ -270,7 +310,7 @@ class ChatMediaItem: ChatRowItem {
         if let file = self.media as? TelegramMediaFile, file.isEmojiAnimatedSticker {
             return rightSize.height + 3
         }
-        if let caption = captionLayout {
+        if let caption = captionLayouts.last?.layout {
             if let line = caption.lines.last, line.frame.width > realContentSize.width - (rightSize.width + insetBetweenContentAndDate) {
                 return rightSize.height
             }
@@ -286,7 +326,7 @@ class ChatMediaItem: ChatRowItem {
             return true
         } else if let media = media as? TelegramMediaFile {
             
-            if let captionLayout = captionLayout, let line = captionLayout.lines.last, line.frame.width < realContentSize.width - (rightSize.width + insetBetweenContentAndDate) {
+            if let captionLayout = captionLayouts.last?.layout, let line = captionLayout.lines.last, line.frame.width < realContentSize.width - (rightSize.width + insetBetweenContentAndDate) {
                 return true
             }
             
@@ -296,7 +336,7 @@ class ChatMediaItem: ChatRowItem {
     }
     
     override var instantlyResize: Bool {
-        if captionLayout != nil && media.isInteractiveMedia {
+        if !captionLayouts.isEmpty && media.isInteractiveMedia {
             return true
         } else {
             return super.instantlyResize
@@ -305,7 +345,7 @@ class ChatMediaItem: ChatRowItem {
     
 
     override var isBubbleFullFilled: Bool {
-        return (media.isInteractiveMedia || isSticker) && isBubbled 
+        return (media.isInteractiveMedia || isSticker) && isBubbled
     }
     
     var positionFlags: LayoutPositionFlags? = nil
@@ -330,7 +370,7 @@ class ChatMediaItem: ChatRowItem {
         }
         
         
-        self.parameters = ChatMediaGalleryParameters(showMedia: { [weak self] message in
+        let parameters = ChatMediaGalleryParameters(showMedia: { [weak self] message in
             guard let `self` = self else {return}
             
             var type:GalleryAppearType = .history
@@ -339,12 +379,15 @@ class ChatMediaItem: ChatRowItem {
             } else if message.containsSecretMedia {
                 type = .secret
             }
-            showChatGallery(context: context, message: message, self.table, self.parameters as? ChatMediaGalleryParameters, type: type)
+            showChatGallery(context: context, message: message, self.table, self.parameters as? ChatMediaGalleryParameters, type: type, chatMode: self.chatInteraction.mode, contextHolder: self.chatInteraction.contextHolder())
             
             }, showMessage: { [weak self] message in
-                self?.chatInteraction.focusMessageId(nil, message.id, .center(id: 0, innerId: nil, animated: true, focus: .init(focus: true), inset: 0))
+                self?.chatInteraction.focusMessageId(nil, message.id, .CenterEmpty)
             }, isWebpage: chatInteraction.isLogInteraction, presentation: .make(for: message, account: context.account, renderType: object.renderType), media: media, automaticDownload: downloadSettings.isDownloable(message), autoplayMedia: object.autoplayMedia)
         
+        self.parameters = parameters
+        
+        self.updateParameters()
         
         if !message.text.isEmpty, canAddCaption {
             
@@ -390,7 +433,7 @@ class ChatMediaItem: ChatRowItem {
             if !hasEntities || message.flags.contains(.Failed) || message.flags.contains(.Unsent) || message.flags.contains(.Sending) {
                 caption.detectLinks(type: types, context: context, color: theme.chat.linkColor(isIncoming, object.renderType == .bubble), openInfo:chatInteraction.openInfo, hashtag: context.sharedContext.bindings.globalSearch, command: chatInteraction.sendPlainText, applyProxy: chatInteraction.applyProxy)
             }
-            captionLayout = TextViewLayout(caption, alignment: .left, selectText: theme.chat.selectText(isIncoming, object.renderType == .bubble), strokeLinks: object.renderType == .bubble, alwaysStaticItems: true, disableTooltips: false)
+            captionLayouts = [.init(id: message.stableId, offset: CGPoint(x: 0, y: 0), layout: TextViewLayout(caption, alignment: .left, selectText: theme.chat.selectText(isIncoming, object.renderType == .bubble), strokeLinks: object.renderType == .bubble, alwaysStaticItems: true, disableTooltips: false))]
             
             let interactions = globalLinkExecutor
             
@@ -398,9 +441,8 @@ class ChatMediaItem: ChatRowItem {
                 copyToClipboard(text)
                 context.sharedContext.bindings.rootNavigation().controller.show(toaster: ControllerToaster(text: L10n.shareLinkCopied))
             }
-            captionLayout?.interactions = interactions
-            
-            if let textLayout = self.captionLayout {
+            for textLayout in self.captionLayouts.map ({ $0.layout }) {
+                textLayout.interactions = interactions
                 if let highlightFoundText = entry.additionalData.highlightFoundText {
                     if highlightFoundText.isMessage {
                         if let range = rangeOfSearch(highlightFoundText.query, in: caption.string) {
@@ -425,16 +467,11 @@ class ChatMediaItem: ChatRowItem {
                     }
                 }
             }
-            
-
         }
-        
-        
-
         
         if isBubbleFullFilled  {
             var positionFlags: LayoutPositionFlags = []
-            if captionLayout == nil {
+            if captionLayouts.isEmpty && commentsBubbleData == nil {
                 positionFlags.insert(.bottom)
                 positionFlags.insert(.left)
                 positionFlags.insert(.right)
@@ -454,7 +491,7 @@ class ChatMediaItem: ChatRowItem {
     }
     
     override func makeContentSize(_ width: CGFloat) -> NSSize {
-        let size = ChatLayoutUtils.contentSize(for: media, with: width, hasText: message?.text.isEmpty == false)
+        let size = ChatLayoutUtils.contentSize(for: media, with: width, hasText: message?.text.isEmpty == false || commentsBubbleData != nil)
         return size
     }
     
@@ -465,13 +502,13 @@ class ChatMediaItem: ChatRowItem {
         }
         return items |> map { [weak self] items in
             var items = items
-            if let captionLayout = self?.captionLayout {
-                let text = captionLayout.attributedString.string
+            if let captionLayout = self?.captionLayouts.first(where: { $0.id == self?.lastMessage?.stableId }) {
+                let text = captionLayout.layout.attributedString.string
                 items.insert(ContextMenuItem(L10n.textCopyText, handler: {
                     copyToClipboard(text)
                 }), at: min(items.count, 1))
                 
-                if let view = self?.view as? ChatRowView, let textView = view.captionView, let window = textView.window {
+                if let view = self?.view as? ChatRowView, let textView = view.captionViews.first(where: { $0.id == self?.lastMessage?.stableId})?.view, let window = textView.window {
                     let point = textView.convert(window.mouseLocationOutsideOfEventStream, from: nil)
                     if let layout = textView.layout {
                         if let (link, _, range, _) = layout.link(at: point) {
@@ -622,11 +659,11 @@ class ChatMediaView: ChatRowView, ModalPreviewRowViewProtocol {
         self.contentNode?.updateMouse()
     }
     
-    override var contentFrame: NSRect {
-        var rect = super.contentFrame
-        
-        guard let item = item as? ChatMediaItem else { return rect }
-        
+    override func contentFrame(_ item: ChatRowItem) -> NSRect {
+        var rect = super.contentFrame(item)
+        guard let item = item as? ChatMediaItem else {
+            return rect
+        }
         if item.isBubbled, item.isBubbleFullFilled {
             rect.origin.x -= item.bubbleContentInset
             if item.hasBubble {

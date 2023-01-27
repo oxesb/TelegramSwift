@@ -8,18 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		A791900C240CF76A002011CA /* NetworkLoggingPublic.h in Headers */ = {isa = PBXBuildFile; fileRef = A791900A240CF76A002011CA /* NetworkLoggingPublic.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		A7919014240CF7E3002011CA /* NetworkLogging.m in Sources */ = {isa = PBXBuildFile; fileRef = A7919013240CF7E3002011CA /* NetworkLogging.m */; };
-		A7919017240CF7F0002011CA /* NetworkLogging.h in Headers */ = {isa = PBXBuildFile; fileRef = A7919016240CF7F0002011CA /* NetworkLogging.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		A7919133240CFF3F002011CA /* MtProtoKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7919132240CFF3F002011CA /* MtProtoKit.framework */; };
+		D0179ECC250BC7EA00599140 /* NetworkLogging.m in Sources */ = {isa = PBXBuildFile; fileRef = D0179ECB250BC7EA00599140 /* NetworkLogging.m */; };
+		D0179F50250BCBAD00599140 /* NetworkLogging.h in Headers */ = {isa = PBXBuildFile; fileRef = D0179F4F250BCBAD00599140 /* NetworkLogging.h */; settings = {ATTRIBUTES = (Public, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A7919007240CF76A002011CA /* NetworkLogging.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NetworkLogging.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A791900A240CF76A002011CA /* NetworkLoggingPublic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkLoggingPublic.h; sourceTree = "<group>"; };
 		A791900B240CF76A002011CA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A7919013240CF7E3002011CA /* NetworkLogging.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NetworkLogging.m; path = "../../../../submodules/telegram-ios/submodules/NetworkLogging/Sources/NetworkLogging.m"; sourceTree = "<group>"; };
-		A7919016240CF7F0002011CA /* NetworkLogging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NetworkLogging.h; path = "../../../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders/NetworkLogging/NetworkLogging.h"; sourceTree = "<group>"; };
 		A7919132240CFF3F002011CA /* MtProtoKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = MtProtoKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0179ECB250BC7EA00599140 /* NetworkLogging.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NetworkLogging.m; sourceTree = "<group>"; };
+		D0179F4F250BCBAD00599140 /* NetworkLogging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkLogging.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,28 +54,12 @@
 		A7919009240CF76A002011CA /* NetworkLogging */ = {
 			isa = PBXGroup;
 			children = (
-				A7919015240CF7E5002011CA /* Headers */,
-				A7919012240CF7CD002011CA /* Sources */,
+				D0179F4D250BCBAD00599140 /* PublicHeaders */,
+				D0179ECA250BC7EA00599140 /* Sources */,
 				A791900A240CF76A002011CA /* NetworkLoggingPublic.h */,
 				A791900B240CF76A002011CA /* Info.plist */,
 			);
 			path = NetworkLogging;
-			sourceTree = "<group>";
-		};
-		A7919012240CF7CD002011CA /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				A7919013240CF7E3002011CA /* NetworkLogging.m */,
-			);
-			path = Sources;
-			sourceTree = "<group>";
-		};
-		A7919015240CF7E5002011CA /* Headers */ = {
-			isa = PBXGroup;
-			children = (
-				A7919016240CF7F0002011CA /* NetworkLogging.h */,
-			);
-			path = Headers;
 			sourceTree = "<group>";
 		};
 		A7919131240CFF3F002011CA /* Frameworks */ = {
@@ -86,6 +70,32 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		D0179ECA250BC7EA00599140 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				D0179ECB250BC7EA00599140 /* NetworkLogging.m */,
+			);
+			name = Sources;
+			path = "../../../submodules/telegram-ios/submodules/NetworkLogging/Sources";
+			sourceTree = "<group>";
+		};
+		D0179F4D250BCBAD00599140 /* PublicHeaders */ = {
+			isa = PBXGroup;
+			children = (
+				D0179F4E250BCBAD00599140 /* NetworkLogging */,
+			);
+			name = PublicHeaders;
+			path = "../../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders";
+			sourceTree = "<group>";
+		};
+		D0179F4E250BCBAD00599140 /* NetworkLogging */ = {
+			isa = PBXGroup;
+			children = (
+				D0179F4F250BCBAD00599140 /* NetworkLogging.h */,
+			);
+			path = NetworkLogging;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -94,7 +104,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A791900C240CF76A002011CA /* NetworkLoggingPublic.h in Headers */,
-				A7919017240CF7F0002011CA /* NetworkLogging.h in Headers */,
+				D0179F50250BCBAD00599140 /* NetworkLogging.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -165,7 +175,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A7919014240CF7E3002011CA /* NetworkLogging.m in Sources */,
+				D0179ECC250BC7EA00599140 /* NetworkLogging.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,6 +302,7 @@
 		A7919010240CF76A002011CA /* DebugAppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -301,6 +312,10 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -309,6 +324,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -318,6 +334,7 @@
 		A7919011240CF76A002011CA /* ReleaseAppStore */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -327,6 +344,10 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -335,6 +356,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -406,6 +428,7 @@
 		A7919043240CFA70002011CA /* DebugHockeyapp */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -417,6 +440,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				GCC_OPTIMIZATION_LEVEL = s;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -425,6 +452,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -496,6 +524,7 @@
 		A7919045240CFA76002011CA /* HockeyappMacAlpha */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -507,6 +536,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
 				GCC_OPTIMIZATION_LEVEL = s;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -515,6 +548,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -579,6 +613,7 @@
 		A7919047240CFA86002011CA /* ReleaseHockeyapp */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -588,6 +623,10 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -596,6 +635,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -667,6 +707,7 @@
 		D0B4941524F3F60400E0A9B3 /* Github */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -676,6 +717,10 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_VERSION = A;
+				HEADER_SEARCH_PATHS = (
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/NetworkLogging/PublicHeaders",
+					"$PROJECT_DIR/../../submodules/telegram-ios/submodules/MtProtoKit/PublicHeaders",
+				);
 				INFOPLIST_FILE = NetworkLogging/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -684,6 +729,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = org.telegram.NetworkLogging;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
