@@ -12,6 +12,8 @@ import LocalAuthentication
 //import WalletCore
 import OpenSSLEncryption
 import CoreSpotlight
+import DDHotKey
+
 #if !APP_STORE
 import AppCenter
 import AppCenterCrashes
@@ -247,7 +249,10 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
     private func launchInterface() {
         initializeAccountManagement()
         
-        
+//        DDHotKeyCenter.shared()?.register(DDHotKey(keyCode: KeyboardKey.G.rawValue, modifierFlags: 0, task: { event in
+//            var bp:Int = 0
+//            bp += 1
+//        }))
         
         let rootPath = containerUrl!
         let window = self.window!
@@ -579,7 +584,7 @@ class AppDelegate: NSResponder, NSApplicationDelegate, NSUserNotificationCenterD
                               //  let tonContext = StoredTonContext(basePath: account.basePath, postbox: account.postbox, network: account.network, keychain: tonKeychain)
 
                                 let context = AccountContext(sharedContext: sharedApplicationContext.sharedContext, window: window, account: account)
-                                return AuthorizedApplicationContext(window: window, context: context, launchSettings: settings ?? LaunchSettings.defaultSettings, callSession: sharedContext.getCrossAccountCallSession())
+                                return AuthorizedApplicationContext(window: window, context: context, launchSettings: settings ?? LaunchSettings.defaultSettings, callSession: sharedContext.getCrossAccountCallSession(), groupCallContext: sharedContext.getCrossAccountGroupCall())
                                 
                             } else {
                                 return nil

@@ -272,14 +272,14 @@ class PeerInfoController: EditableViewController<TableView> {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        window?.set(handler: { [weak self] () -> KeyHandlerResult in
+        window?.set(handler: { [weak self] _ -> KeyHandlerResult in
             if let strongSelf = self {
                 return strongSelf.returnKeyAction()
             }
             return .rejected
         }, with: self, for: .Return, priority: .high)
         
-        window?.set(handler: { [weak self] () -> KeyHandlerResult in
+        window?.set(handler: { [weak self] _ -> KeyHandlerResult in
             if let strongSelf = self {
                 return strongSelf.returnKeyAction()
             }
@@ -332,7 +332,7 @@ class PeerInfoController: EditableViewController<TableView> {
         
         mediaController.loadViewIfNeeded()
         
-        let inputActivity = context.account.peerInputActivities(peerId: .init(peerId: peerId, threadId: nil))
+        let inputActivity = context.account.peerInputActivities(peerId: .init(peerId: peerId, category: .global))
             |> map { activities -> [PeerId : PeerInputActivity] in
                 return activities.reduce([:], { (current, activity) -> [PeerId : PeerInputActivity] in
                     var current = current

@@ -370,6 +370,9 @@ class ChatListController : PeersListController {
                 var cachedResult: [PeerId: [ChatListInputActivity]] = [:]
                 previousPeerCache.with { dict -> Void in
                     for (chatPeerId, activities) in activitiesByPeerId {
+                        guard case .global = chatPeerId.category else {
+                            continue
+                        }
                         var cachedChatResult: [ChatListInputActivity] = []
                         for (peerId, activity) in activities {
                             if let peer = dict[peerId] {
@@ -389,6 +392,10 @@ class ChatListController : PeersListController {
                         var result: [PeerId: [ChatListInputActivity]] = [:]
                         var peerCache: [PeerId: Peer] = [:]
                         for (chatPeerId, activities) in activitiesByPeerId {
+                            guard case .global = chatPeerId.category else {
+                                continue
+                            }
+
                             var chatResult: [ChatListInputActivity] = []
                             
                             for (peerId, activity) in activities {
@@ -1266,7 +1273,7 @@ class ChatListController : PeersListController {
         
         removeHighlightEvents()
         
-        context.window.set(handler: { [weak self] () -> KeyHandlerResult in
+        context.window.set(handler: { [weak self] _ -> KeyHandlerResult in
             if let item = self?.genericView.tableView.highlightedItem(), item.index > 0 {
                 self?.genericView.tableView.highlightPrev(turnDirection: false)
                 while self?.genericView.tableView.highlightedItem() is PopularPeersRowItem || self?.genericView.tableView.highlightedItem() is SeparatorRowItem {
@@ -1277,7 +1284,7 @@ class ChatListController : PeersListController {
         }, with: self, for: .UpArrow, priority: .low)
         
         
-        context.window.set(handler: { [weak self] () -> KeyHandlerResult in
+        context.window.set(handler: { [weak self] _ -> KeyHandlerResult in
             self?.genericView.tableView.highlightNext(turnDirection: false)
             while self?.genericView.tableView.highlightedItem() is PopularPeersRowItem || self?.genericView.tableView.highlightedItem() is SeparatorRowItem {
                 self?.genericView.tableView.highlightNext(turnDirection: false)

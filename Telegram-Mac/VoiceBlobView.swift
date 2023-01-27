@@ -76,7 +76,7 @@ final class VoiceBlobView: View {
         addSubview(smallBlob)
         
         displayLinkAnimator = ConstantDisplayLinkAnimator(update: { [weak self] in
-            guard let strongSelf = self else { return }
+            guard let strongSelf = self, let window = self?.window, window.isVisible else { return }
             
             strongSelf.presentationAudioLevel = strongSelf.presentationAudioLevel * 0.9 + strongSelf.audioLevel * 0.1
             
@@ -114,8 +114,8 @@ final class VoiceBlobView: View {
         guard !isAnimating else { return }
         isAnimating = true
         
-        mediumBlob.layer?.animateScale(from: 0.5, to: 1, duration: 0.15, removeOnCompletion: false)
-        bigBlob.layer?.animateScale(from: 0.5, to: 1, duration: 0.15, removeOnCompletion: false)
+        mediumBlob.layer?.animateScaleSpring(from: 0.5, to: 1, duration: 0.5, removeOnCompletion: false)
+        bigBlob.layer?.animateScaleSpring(from: 0.5, to: 1, duration: 0.5, removeOnCompletion: false)
         
         updateBlobsState()
         
@@ -126,8 +126,8 @@ final class VoiceBlobView: View {
         guard isAnimating else { return }
         isAnimating = false
         
-        mediumBlob.layer?.animateScale(from: 1.0, to: 0.5, duration: 0.15, removeOnCompletion: false)
-        bigBlob.layer?.animateScale(from: 1.0, to: 0.5, duration: 0.15, removeOnCompletion: false)
+        mediumBlob.layer?.animateScaleSpring(from: 1.0, to: 0.5, duration: 0.5, removeOnCompletion: false)
+        bigBlob.layer?.animateScaleSpring(from: 1.0, to: 0.5, duration: 0.5, removeOnCompletion: false)
         
         updateBlobsState()
         

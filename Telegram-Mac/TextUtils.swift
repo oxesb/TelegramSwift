@@ -417,7 +417,43 @@ func serviceMessageText(_ message:Message, account:Account, isReplied: Bool = fa
             } else {
                 return L10n.notificationProximityReached1(message.peers[fromId]?.displayTitle ?? "", distanceString, message.peers[toId]?.displayTitle ?? "")
             }
-
+        case let .groupPhoneCall(_, _, duration):
+            let text: String
+            if let duration = duration {
+                if authorId == account.peerId {
+                    text = L10n.chatServiceVoiceChatFinishedYou(String.durationTransformed(elapsed: Int(duration)))
+                } else {
+                    text = L10n.chatServiceVoiceChatFinished(authorName, String.durationTransformed(elapsed: Int(duration)))
+                }
+            } else {
+                if authorId == account.peerId {
+                    text = L10n.chatListServiceVoiceChatStartedYou
+                } else {
+                    text = L10n.chatListServiceVoiceChatStarted(authorName)
+                }
+            }
+            return text
+        case  let .inviteToGroupPhoneCall(_, _, peerIds):
+            let text: String
+            
+            var list = ""
+            for peerId in peerIds {
+                if let peer = message.peers[peerId] {
+                    list += peer.displayTitle
+                    if peerId != peerIds.last {
+                        list += ", "
+                    }
+                }
+            }
+            
+            if message.author?.id == account.peerId {
+                text = L10n.chatListServiceVoiceChatInvitationByYou(list)
+            } else if peerIds.first == account.peerId {
+                text = L10n.chatListServiceVoiceChatInvitationForYou(authorName)
+            } else {
+                text = L10n.chatListServiceVoiceChatInvitation(authorName, list)
+            }
+            return text
         }
     }
     

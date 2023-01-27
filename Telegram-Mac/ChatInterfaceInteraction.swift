@@ -150,6 +150,8 @@ final class ChatInteraction : InterfaceObserver  {
     var setLocation: (ChatHistoryLocation)->Void = { _ in }
     var scrollToTheFirst: () -> Void = {}
     var openReplyThread:(MessageId, Bool, Bool, ReplyThreadMode)->Void = {  _, _, _, _ in }
+    
+    var joinGroupCall:(CachedChannelData.ActiveCall)->Void = { _ in }
 
     func chatLocationInput() -> ChatLocationInput {
         return context.chatLocationInput(for: self.chatLocation, contextHolder: contextHolder())
@@ -469,6 +471,9 @@ final class ChatInteraction : InterfaceObserver  {
         disableProxyDisposable.dispose()
         enableProxyDisposable.dispose()
         editDisposable.dispose()
+        update({ _ in
+            return ChatPresentationInterfaceState(chatLocation: self.chatLocation, chatMode: self.mode)
+        })
     }
     
     

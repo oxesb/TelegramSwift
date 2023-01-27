@@ -55,6 +55,7 @@ public final class AccountWithInfo: Equatable {
 
 
 
+
 class SharedAccountContext {
     let accountManager: AccountManager
     var bindings: AccountContextBindings = AccountContextBindings()
@@ -519,6 +520,12 @@ class SharedAccountContext {
     func getCrossAccountCallSession() -> PCallSession? {
         return crossCallSession.swap(nil)
     }
+    
+    private let crossGroupCall: Atomic<GroupCallContext?> = Atomic<GroupCallContext?>(value: nil)
+    
+    func getCrossAccountGroupCall() -> GroupCallContext? {
+        return crossGroupCall.swap(nil)
+    }
     #endif
     
     
@@ -565,7 +572,8 @@ class SharedAccountContext {
         #else
         
         _ = crossCallSession.swap(bindings.callSession())
-        
+        _ = crossGroupCall.swap(bindings.groupCall())
+
          _ = self.accountManager.transaction({ transaction in
             if transaction.getCurrent()?.0 != id {
                 transaction.setCurrentId(id)
@@ -574,6 +582,11 @@ class SharedAccountContext {
         #endif
         
     }
+    
+    var hasActiveCall:Bool {
+        return bindings.callSession() != nil || bindings.groupCall() != nil
+    }
+    
     #if !SHARE
     func showCallHeader(with session:PCallSession) {
         bindings.rootNavigation().callHeader?.show(true)
@@ -581,6 +594,26 @@ class SharedAccountContext {
             view.update(with: session)
         }
     }
+    private let groupCallContextValue:Promise<GroupCallContext?> = Promise(nil)
+    var groupCallContext:Signal<GroupCallContext?, NoError> {
+        return groupCallContextValue.get()
+    }
+    func showGroupCall(with context: GroupCallContext) {
+        groupCallContextValue.set(.single(context))
+        let callHeader = bindings.rootNavigation().callHeader
+        callHeader?.show(true)
+        (callHeader?.view as? GroupCallNavigationHeaderView)?.update(with: context)
+    }
+    
+    func endGroupCall(terminate: Bool) -> Signal<Bool, NoError> {
+        if let groupCall = bindings.groupCall() {
+            groupCallContextValue.set(groupCall.call.leave(terminateIfPossible: terminate) |> filter { $0 } |> map { _ in return nil })
+            return groupCall.call.canBeRemoved |> filter { $0 } |> take(1) 
+        } else {
+            return .single(true)
+        }
+    }
+    
     #endif
     deinit {
         layoutDisposable.dispose()
